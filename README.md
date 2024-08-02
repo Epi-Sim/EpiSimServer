@@ -54,6 +54,14 @@ After installation, you can run EpiSim using the `episim` command.
 
 EpiSim works as a command line frontend to launch simulations. It provides a simple JSON based config format to define an instance of a model. The config format included a common or core sets of parameter and specific parameters required by the different engines supported by EpiSim.jl.
 
+Example:
+
+```bash
+./episim -e MMCACovid19Vac run -c models/mitma/config.json -d models/mitma/ -i runs --start-date "2023-01-01" --end-date "2023-01-02"
+```
+
+<!--  WIP: Miguel's plans
+
 ### The `epiconfig.json` format
 ```
 {
@@ -224,6 +232,8 @@ Usage:
 	                    [--simulation SIMULATION] [--first-day-train FIRST_DAY_TRAIN] [--last-day-train LAST_DAY_TRAIN] [--metric METRIC] [--weights WEIGHTS]
 	                    [--fit FIT] [--all] [--run RUN]
 
+
+-->
 
 ## References
 

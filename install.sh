@@ -11,7 +11,7 @@ MMCACovid19Vac="https://github.com/Epi-Sim/MMCACovid19Vac.jl"
 
 if ! in_hpc_bsc || in_hpc_wifi; then
     echo "Installing MMCACovid19Vac package..."
-    if julia --project=${PROJDIR} -e "using Pkg; Pkg.add(url=\"${MMCACovid19Vac}\"); Pkg.instantiate(); Pkg.precompile()"; then
+    if julia +1.10.0 --project=${PROJDIR} -e "using Pkg; Pkg.add(url=\"${MMCACovid19Vac}\"); Pkg.instantiate(); Pkg.precompile()"; then
         echo "Engine installed successfully."
     else
         echo "Engine installation failed. Please check the error messages above."
@@ -33,7 +33,17 @@ if in_hpc_bsc; then
         -A $ACCOUNT \
         --qos gp_bscls \
         -c 4 -n 1 \
-        julia install.jl -c |&cat
+        --output=install_log.txt \
+        --error=install_log.txt \
+        julia install.jl -c
+
+    # Wait for the log file to be created
+    while [ ! -f install_log.txt ]; do
+        sleep 1
+    done
+
+    # Read from the log file
+    tail -f install_log.txt
 else
-    julia install.jl -c
+    julia +1.10.0 install.jl -c
 fi
