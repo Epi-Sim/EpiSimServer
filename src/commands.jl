@@ -106,9 +106,7 @@ function execute_run(args, engine)
     
     validate_config(config, engine)
 
-    if engine == "MMCACovid19Vac"
-        run_MMCACovid19Vac(config, data_path, instance_path, init_condition_path)
-    end
+    run_engine(engine, config, data_path, instance_path, init_condition_path)
 end
 
 function execute_setup(args, engine)
@@ -133,7 +131,7 @@ function execute_setup(args, engine)
     # df[!, "Total"] = sum(eachcol(df))
 end
 
-function execute_init(args)
+function execute_init()
     conditions₀ = CSV.read(seeds_fname, DataFrame)
     patches_idxs = Int.(conditions₀[:, "idx"])
     
@@ -243,10 +241,8 @@ function create_core_config()
     return config
 end
 
-function create_config_template(engine::String, M::Int, G::Int)
+function create_config_template(::MMCACovid19VacEngine, M::Int, G::Int)
     config = create_core_config()
-    if engine == "MMCACovid19Vac"
-        config = merge(config, MMCACovid19Vac.create_config_template(G))
-    end
+    config = merge(config, MMCACovid19Vac.create_config_template(G))
     return config
 end

@@ -1,6 +1,27 @@
 
+const ENGINES  = ["MMCACovid19Vac", "MMCACovid19"]
+const COMMANDS = ["run", "setup", "init"]
 
-function run_MMCACovid19Vac(config::Dict, data_path::String, instance_path::String, init_condition_path::String)
+abstract type AbstractEngine end
+
+# Add to this as we add more engines
+struct MMCACovid19VacEngine <: AbstractEngine end
+struct MMCACovid19Engine <: AbstractEngine end
+
+# Define a dictionary to map engine names to their types
+const ENGINE_TYPES = Dict(
+    "MMCACovid19Vac" => MMCACovid19VacEngine,
+    "MMCACovid19" => MMCACovid19Engine
+)
+
+function get_engine(engine_name::String)
+    engine_type = get(ENGINE_TYPES, engine_name, nothing)
+    isnothing(engine_type) && error("Unknown engine: $engine_name")
+    return engine_type()
+end
+
+
+function run_engine(::MMCACovid19VacEngine, config::Dict, data_path::String, instance_path::String, init_condition_path::String)
 
     ###########################################
     ############# FILE READING ################
@@ -168,7 +189,7 @@ function run_MMCACovid19Vac(config::Dict, data_path::String, instance_path::Stri
 end
 
 
-function run_MMCACovid19(config::Dict, data_path::String, instance_path::String, init_condition_path::String)
+function run_engine(::MMCACovid19Engine, config::Dict, data_path::String, instance_path::String, init_condition_path::String)
 
     ###########################################
     ############# FILE READING ################

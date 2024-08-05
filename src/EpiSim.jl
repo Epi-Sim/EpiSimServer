@@ -13,10 +13,10 @@ include("commands.jl")
 include("engine.jl")
 include("io.jl")
 
-const ENGINES  = ["MMCACovid19Vac", "MMCACovid19"]
-const COMMANDS = ["run", "setup", "init"]
-
 function julia_main()::Cint
+    """
+    This is the entrypoint for the compiled version of EpiSim.
+    """
     try
         args = parse_command_line()
         command = args["%COMMAND%"]
@@ -29,18 +29,14 @@ function julia_main()::Cint
             return 1
         end
 
-        if !(engine in ENGINES)
-            println("Unknown engine: $engine")
-            println("Accepted engine are: $(join(ENGINES, ", "))")
-            return 1
-        end
+        engine = get_engine(engine)
 
         if command == "run"
             execute_run(args["run"], engine)
         elseif command == "setup"
             execute_setup(args["setup"], engine)
         elseif command == "init"
-            execute_init(args)
+            execute_init()
         end
 
     catch
@@ -48,6 +44,11 @@ function julia_main()::Cint
         return 1
     end
     return 0
+end
+
+function main()
+    "alias for convenience"
+    return julia_main()
 end
 
 end # module EpiSim
