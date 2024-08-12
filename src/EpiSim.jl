@@ -1,6 +1,6 @@
 module EpiSim
 
-using MMCACovid19Vac
+# using MMCACovid19Vac
 using ArgParse
 using Dates, Logging, Printf
 using HDF5, DataFrames, NetCDF
@@ -10,8 +10,6 @@ import CSV
 
 
 include("commands.jl")
-include("engine.jl")
-include("io.jl")
 
 function julia_main()::Cint
     """
@@ -38,17 +36,25 @@ function julia_main()::Cint
         elseif command == "init"
             execute_init()
         end
+        @info "done in main"
 
-    catch
-        Base.invokelatest(Base.display_error, Base.catch_stack())
+    catch e
+        @error "error in main" exception=(e, catch_backtrace())
         return 1
     end
+    @info "final"
     return 0
 end
 
 function main()
     "alias for convenience"
-    return julia_main()
+    @info "main"
+    try
+        return julia_main()
+    catch e
+        @error "Error after julia_main" exception=(e, catch_backtrace())
+        rethrow(e)
+    end
 end
 
 end # module EpiSim

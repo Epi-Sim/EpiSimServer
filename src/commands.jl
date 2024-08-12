@@ -1,3 +1,5 @@
+include("engine.jl")
+
 function parse_command_line()
     s = ArgParseSettings()
 
@@ -106,7 +108,8 @@ function execute_run(args, engine)
     
     validate_config(config, engine)
 
-    run_engine(engine, config, data_path, instance_path, init_condition_path)
+    run_engine_io(engine, config, data_path, instance_path, init_condition_path)
+    @info "done executing run command"
 end
 
 function execute_setup(args, engine)
