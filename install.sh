@@ -33,8 +33,6 @@ if in_hpc_bsc; then
         -A $ACCOUNT \
         --qos gp_bscls \
         -c 4 -n 1 \
-        --output=install_log.txt \
-        --error=install_log.txt \
         julia install.jl -c |&cat
 else
     julia install.jl -c
