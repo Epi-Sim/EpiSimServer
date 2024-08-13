@@ -29,12 +29,14 @@ class MMCACovid19:
             config_path = config
 
         cmd = [self.executable_path]
+        # TODO: undo hardcoded engine
+        cmd.extend(["-e", "MMCACovid19Vac", "run"])
         cmd.extend(["--config", config_path])
         cmd.extend(["--data-folder", data_folder])
         cmd.extend(["--instance-folder", instance_folder])
         
         if initial_conditions:
-            cmd.extend(["--initial-conditions", initial_conditions])
+            cmd.extend(["--initial-condition", initial_conditions])
 
         print(f"Running command: {cmd}")
         result = subprocess.run(cmd, capture_output=True, text=True)
