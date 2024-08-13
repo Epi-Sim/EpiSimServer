@@ -29,6 +29,10 @@ build/*
 output/*.nc
 output/*.csv
 output/*.hdf5
+runs/*
 
 episim
 bin/episim
+
+localvenv/
+src/__pycache__/
