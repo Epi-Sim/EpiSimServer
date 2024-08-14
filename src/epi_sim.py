@@ -46,6 +46,7 @@ class EpiSim:
         config_path (str): Path to the current configuration file.
         data_folder (str): Folder containing input data for the model.
         model_state (str): Path to the current model state file.
+        backend_engine (str): The backend engine to use for EpiSim ('MMCACovid19Vac' or 'MMCACovid19').
 
     """
 
@@ -53,6 +54,9 @@ class EpiSim:
     DEFAULT_EXECUTABLE_PATH = os.path.join(os.path.dirname(__file__), os.pardir, "episim")
     # entrypoint for running EpiSim.jl by the Julia interpreter. Slower startup time, faster to debug code changes
     DEFAULT_INTERPRETER_PATH = ["julia", os.path.join(os.path.dirname(__file__), "run.jl")]
+
+    DEFAULT_BACKEND_ENGINE = 'MMCACovid19Vac'
+    BACKEND_ENGINES = ['MMCACovid19Vac', 'MMCACovid19']
 
     def __init__(self, config, data_folder, instance_folder, initial_conditions=None):
         """
@@ -90,6 +94,8 @@ class EpiSim:
             new_initial_conditions = os.path.join(self.model_state_folder, os.path.basename(initial_conditions))
             shutil.copy(initial_conditions, new_initial_conditions)
             self.model_state = new_initial_conditions
+
+        self.backend_engine = EpiSim.DEFAULT_BACKEND_ENGINE
 
         logger.info(f"Model wrapper init complete. UUID: {self.uuid}")
 
@@ -182,7 +188,7 @@ class EpiSim:
         self._check_setup()
 
         cmd = list(self.executable_path)
-        cmd.extend(["-e", "MMCACovid19Vac", "run"])
+        cmd.extend(["-e", self.backend_engine, "run"])  # Use the selected backend engine
         cmd.extend(["--config", self.config_path])
         cmd.extend(["--data-folder", self.data_folder])
         cmd.extend(["--instance-folder", self.model_state_folder])
@@ -210,6 +216,21 @@ class EpiSim:
 
     def update_model_state(self, end_date):
         self.model_state = self.model_state_filename(end_date)
+
+    def set_backend_engine(self, engine):
+        """
+        Set the backend engine for EpiSim.
+
+        Args:
+            engine (str): The backend engine to use ('MMCACovid19Vac' or 'MMCACovid19').
+
+        Raises:
+            ValueError: If an invalid engine is provided.
+        """
+        if engine not in EpiSim.BACKEND_ENGINES:
+            raise ValueError("Invalid backend engine. Choose 'MMCACovid19Vac' or 'MMCACovid19'.")
+        self.backend_engine = engine
+        logger.info(f"Backend engine set to: {self.backend_engine}")
 
     @staticmethod
     def handle_config_input(model_state_folder, config):
@@ -268,7 +289,7 @@ def run_model_example():
     # read the config file sample to dict
     with open(os.path.join(pardir(), "models/mitma/config.json"), 'r') as f:
         config = json.load(f)
-
+    
     data_folder = os.path.join(pardir(), "models/mitma")
     instance_folder = os.path.join(pardir(), "runs")
 
