@@ -23,6 +23,8 @@ docs/site/
 # environment.
 Manifest.toml
 
+src/__pycache__
+runs/
 build/*
 output/*.nc
 output/*.csv

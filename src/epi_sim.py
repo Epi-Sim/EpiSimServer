@@ -24,13 +24,13 @@ import uuid
 import shutil
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 logger.addHandler(logging.StreamHandler(sys.stdout))
 
 logger.handlers[0].setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
 
-class MMCACovid19:
+class EpiSim:
     """
     A wrapper for EpiSim.jl that handles file writing and reading for executing the model.
 
@@ -38,7 +38,8 @@ class MMCACovid19:
     execution of the EpiSim model.
 
     Attributes:
-        executable_path (str): Path to the compiled EpiSim executable.
+        executable_path (str): Path to the compiled EpiSim executable or Julia script.
+        executable_type (str): Either 'compiled' or 'interpreter'.
         instance_folder (str): Folder to store instance-specific data.
         uuid (str): Unique identifier for this model instance.
         model_state_folder (str): Folder to store model state files.
@@ -48,12 +49,16 @@ class MMCACovid19:
 
     """
 
-    def __init__(self, executable_path, config, data_folder, instance_folder, initial_conditions=None):
+    # location of the compiled EpiSim.jl
+    DEFAULT_EXECUTABLE_PATH = os.path.join(os.path.dirname(__file__), os.pardir, "episim")
+    # entrypoint for running EpiSim.jl by the Julia interpreter. Slower startup time, faster to debug code changes
+    DEFAULT_INTERPRETER_PATH = ["julia", os.path.join(os.path.dirname(__file__), "run.jl")]
+
+    def __init__(self, config, data_folder, instance_folder, initial_conditions=None):
         """
         Initialize the MMCACovid19 model wrapper.
 
         Args:
-            executable_path (str): Path to the compiled EpiSim executable.
             config (dict or str): Model configuration as a dictionary or path to a JSON file.
             data_folder (str): Folder containing input data for the model.
             instance_folder (str): Folder to store instance-specific data.
@@ -62,21 +67,19 @@ class MMCACovid19:
         Raises:
             AssertionError: If required paths do not exist or are invalid.
         """
-        # assert the compiled executable exists
-        assert os.path.exists(executable_path)
-        assert os.path.isfile(executable_path)
-        assert os.access(executable_path, os.X_OK)
-
         assert os.path.exists(data_folder)
         assert os.path.exists(instance_folder)
 
-        self.executable_path = executable_path
+        self.setup_complete = False
+        self.executable_path = None
+        self.executable_type = None
+
         self.instance_folder = instance_folder
         self.uuid = str(uuid.uuid4())
         self.model_state_folder = os.path.join(instance_folder, self.uuid)
         os.makedirs(self.model_state_folder, exist_ok=False)
 
-        config_path = MMCACovid19.handle_config_input(self.model_state_folder, config)
+        config_path = EpiSim.handle_config_input(self.model_state_folder, config)
 
         self.config_path = config_path
         self.data_folder = data_folder
@@ -89,7 +92,42 @@ class MMCACovid19:
             self.model_state = new_initial_conditions
 
         logger.info(f"Model wrapper init complete. UUID: {self.uuid}")
-        return self.uuid
+
+    def setup(self, executable_type='interpreter', executable_path=None):
+        """
+        Set up the execution environment for EpiSim.
+
+        Args:
+            executable_type (str): Either 'compiled' or 'interpreter'.
+            executable_path (str): Path to the compiled executable or Julia script.
+
+        Raises:
+            ValueError: If invalid executable_type or missing executable_path.
+        """
+        if executable_type not in ['compiled', 'interpreter']:
+            raise ValueError("executable_type must be 'compiled' or 'interpreter'")
+
+        if executable_type == 'compiled':
+            executable_path = executable_path or EpiSim.DEFAULT_EXECUTABLE_PATH
+            if not executable_path:
+                raise ValueError("cannot find a valid executable_path for the compiled model")
+            assert os.path.exists(executable_path)
+            assert os.path.isfile(executable_path)
+            assert os.access(executable_path, os.X_OK)
+            self.executable_path = [executable_path]
+        else:
+            # assert that julia interpreter is available
+            assert shutil.which("julia"), "Julia interpreter not found"
+            self.executable_path = EpiSim.DEFAULT_INTERPRETER_PATH
+
+        self.executable_type = executable_type
+        self.setup_complete = True
+        logger.info(f"EpiSim setup complete. Type: {self.executable_type}")
+        return self
+
+    def _check_setup(self):
+        if not self.setup_complete:
+            raise RuntimeError("EpiSim not set up. Call setup() first.")
 
     def step(self, start_date, length_days):
         """
@@ -106,6 +144,7 @@ class MMCACovid19:
                 - str: Path to the updated model state file.
                 - str: The next start date after this step.
         """
+        self._check_setup()
         end_date = date_addition(start_date, length_days - 1)
 
         logger.debug(f"Running model from {start_date} to {end_date}")
@@ -140,7 +179,10 @@ class MMCACovid19:
         Raises:
             RuntimeError: If the model execution fails.
         """
-        cmd = [self.executable_path]
+        self._check_setup()
+
+        cmd = list(self.executable_path)
+        cmd.extend(["-e", "MMCACovid19Vac", "run"])
         cmd.extend(["--config", self.config_path])
         cmd.extend(["--data-folder", self.data_folder])
         cmd.extend(["--instance-folder", self.model_state_folder])
@@ -230,9 +272,15 @@ def run_model_example():
     data_folder = os.path.join(pardir(), "models/mitma")
     instance_folder = os.path.join(pardir(), "runs")
 
-    model = MMCACovid19(
-        executable_path, config, data_folder, instance_folder, initial_conditions
+    model = EpiSim(
+        config, data_folder, instance_folder, initial_conditions
     )
+    
+    # Set up with compiled executable
+    # model.setup(executable_type='compiled', executable_path=os.path.join(pardir(), "episim"))
+    
+    # Or set up with Julia interpreter
+    model.setup(executable_type='interpreter', executable_path=os.path.join(pardir(), "run.jl"))
 
     logger.info("Running")
     output = model.run_model(length_days=1, start_date="2023-01-01", end_date="2023-01-02")
@@ -252,9 +300,16 @@ def agent_flow_example():
     data_folder = os.path.join(pardir(), "models/mitma")
     instance_folder = os.path.join(pardir(), "runs")
 
-    model = MMCACovid19(
-        executable_path, config, data_folder, instance_folder, initial_conditions
+    model = EpiSim(
+        config, data_folder, instance_folder, initial_conditions
     )
+    
+    # Set up with compiled executable
+    # model.setup(executable_type='compiled', executable_path=os.path.join(pardir(), "episim"))
+    
+    # Or set up with Julia interpreter
+    model.setup(executable_type='interpreter', executable_path=os.path.join(pardir(), "run.jl"))
+
     logger.debug("debug Model wrapper init complete")
 
     start_date="2023-01-01"

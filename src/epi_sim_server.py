@@ -3,25 +3,29 @@ import json
 import os
 import tempfile
 import base64
-from MMCACovid19Py import MMCACovid19, pardir
+from epi_sim import EpiSim
 
 app = Flask(__name__)
 
-def write_json_to_file(data, filename):
-    file_path = os.path.join(pardir(), "models/mitma", filename)
+def write_json_to_data_folder(data, filename):
+    file_path = os.path.join(os.path.dirname(__file__), os.pardir, "models/mitma", filename)
     with open(file_path, 'w') as f:
         json.dump(data, f, indent=4)
+    return file_path
 
 @app.route('/run_simulation', methods=['POST'])
-def run_simulation():
+def server_run_simulation():
     try:
         payload = request.json
 
         # Write JSON payload contents to files
-        write_json_to_file(json.loads(payload['config']), 'config.json')
-        write_json_to_file(json.loads(payload['mobility_reduction']), 'mobility_reduction.json')
-        write_json_to_file(json.loads(payload['mobility_matrix']), 'mobility_matrix.json')
-        write_json_to_file(json.loads(payload['metapop']), 'metapop.json')
+        config_fp = write_json_to_data_folder(json.loads(payload['config']), 'config.json')
+        mobility_reduction_fp = write_json_to_data_folder(json.loads(payload['mobility_reduction']), 'mobility_reduction.json')
+        mobility_matrix_fp = write_json_to_data_folder(json.loads(payload['mobility_matrix']), 'mobility_matrix.json')
+        metapop_fp = write_json_to_data_folder(json.loads(payload['metapop']), 'metapop.json')
+
+        data_folder = os.path.join(os.path.dirname(__file__), os.pardir, "models/mitma")
+        instance_folder = os.path.join(os.path.dirname(__file__), os.pardir, "runs")
 
         # Create a temporary file for the initial conditions
         with tempfile.NamedTemporaryFile(suffix='.nc', delete=False) as temp_file:
@@ -30,18 +34,13 @@ def run_simulation():
             temp_file.write(decoded_data)
 
         # Initialize the MMCACovid19 model
-        executable_path = os.path.join(pardir(), "episim")
-        model = MMCACovid19(executable_path)
-
-        # Prepare arguments for run_model
-        config = os.path.join(pardir(), "models/mitma/config.json")
-        data_folder = os.path.join(pardir(), "models/mitma")
-        instance_folder = os.path.join(pardir(), "runs")
-        init_conditions = temp_file_path
+        executable_path = os.path.join(os.path.dirname(__file__), os.pardir, "episim")
+        app.logger.debug(f"config path: {config_fp}")
+        model = EpiSim(config_fp, data_folder, instance_folder, temp_file_path).setup('interpreter')
 
         # Run the model
         app.logger.debug("Running model")
-        output = model.run_model(config, data_folder, instance_folder, init_conditions)
+        output = model.run_model(2, "2024-03-01", "2024-03-03")
         
         # Clean up the temporary file
         os.unlink(temp_file_path)
