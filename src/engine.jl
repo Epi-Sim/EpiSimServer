@@ -112,7 +112,7 @@ function run_engine_io(engine::AbstractEngine, config::Dict, data_path::String, 
     simulation_dict = config["simulation"]
     output_format    = simulation_dict["output_format"]
     save_full_output = get(simulation_dict, "save_full_output", false)
-    save_time_step   = get(simulation_dict, "export_compartments_time_t", nothing)
+    time_step_tosave   = get(simulation_dict, "export_compartments_time_t", nothing)
     output_path = joinpath(instance_path, "output")
 
     npi_params, network_df, metapop_df, initial_compartments = read_input_files(engine, config, data_path, instance_path, init_condition_path)
@@ -120,16 +120,16 @@ function run_engine_io(engine::AbstractEngine, config::Dict, data_path::String, 
     epi_params, population, coords = run_engine(engine, config, npi_params, network_df, metapop_df, initial_compartments)
 
     @info "\t- Save full output = " save_full_output
-    if save_time_step !== nothing
-        @info "\t- Save time step at t=" save_time_step
-        save_time_step = parse(Int, save_time_step)
+    if time_step_tosave !== nothing
+        @info "\t- Save time step at t=" time_step_tosave
+        @assert time_step_tosave isa Int
     end
 
     if save_full_output
         save_full(epi_params, population, output_path, output_format; coords...)
     end
-    if save_time_step !== nothing
-        save_time_step(epi_params, population, output_path, save_time_step)
+    if time_step_tosave !== nothing
+        save_time_step(epi_params, population, output_path, time_step_tosave)
     end
 
     @info "done running engine io"
