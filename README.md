@@ -88,6 +88,41 @@ Example:
 }
 ```
 
+```bash
+episim -e MMCACovid19Vac run -c models/mitma/config.json -d models/mitma -i runs
+```
+
+### Using the Python interface
+
+Install dependencies:
+
+```bash
+pip install -r py_interface/requirements.txt
+```
+
+Run the model in steps:
+
+```python
+from py_interface.EpiSim import MMCACovid19
+
+executable_path = "./episim"
+config_path = "models/mitma/config.json"
+data_folder = "models/mitma"
+instance_folder = "runs"
+initial_conditions = "models/mitma/initial_conditions.nc"
+
+model = MMCACovid19(
+	executable_path, config_path, data_folder, instance_folder, initial_conditions
+)
+
+new_state, next_date = model.step("2020-03-10", 5)
+
+new_state, next_date = model.step(next_date, 5)
+```
+
+See `py_interface/EpiSim.py` for more examples.
+
+<!-- 
 
 ## run_simulations.jl
 
@@ -231,6 +266,8 @@ Usage:
 	usage: summarize.py [-h] --instance-folder INSTANCE_PATH --data-folder DATA_PATH [--config CONFIG_PATH] [--output-folder OUTPUT_PATH]
 	                    [--simulation SIMULATION] [--first-day-train FIRST_DAY_TRAIN] [--last-day-train LAST_DAY_TRAIN] [--metric METRIC] [--weights WEIGHTS]
 	                    [--fit FIT] [--all] [--run RUN]
+
+-->
 
 
 -->
