@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Grid, TextField, Button, Typography, Checkbox, FormControlLabel, MenuItem } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { parseISO } from 'date-fns';
+import { parseISO, format } from 'date-fns';
 
 const GeneralParams = ({ params, setParams, engineOptions }) => {
   // Parse initial date values
@@ -32,7 +32,7 @@ const GeneralParams = ({ params, setParams, engineOptions }) => {
   const handleDateChange = (field) => (date) => {
     if (field === 'start_date') setStartDate(date);
     if (field === 'end_date') setEndDate(date);
-    setParams({ ...params, [field]: date });
+    setParams({ ...params, [field]: format(date, 'yyyy-MM-dd') });
   };
 
   const handleInputChange = (field) => (event) => {
@@ -379,7 +379,7 @@ const NPIParams = ({ params, setParams }) => {
         <Grid item xs={12}>
           <TextField
             fullWidth
-            label="t��s: Timesteps at which confinement (lockdown) is applied"
+            label="ts: Timesteps at which confinement (lockdown) is applied"
             value={params.tᶜs.join(', ')}
             onChange={handleInputChange('tᶜs')}
           />

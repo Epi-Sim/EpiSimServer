@@ -70,6 +70,7 @@ def server_run_simulation():
              tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as metapop_file, \
              tempfile.NamedTemporaryFile(mode='wb', suffix='.nc', delete=False) as init_conditions_file:
 
+            app.logger.debug(f"payload: {payload}")
             json.dump(payload['config'], config_file)
             json.dump(payload['mobility_reduction'], mobility_reduction_file)
             json.dump(payload['mobility_matrix'], mobility_matrix_file)
@@ -96,7 +97,7 @@ def server_run_simulation():
 
         # Run the model
         app.logger.debug("Running model")
-        id, output = model.run_model(2, "2024-03-01", "2024-03-03")
+        id, output = model.run_model()
         
         # Clean up the temporary files
         for fp in [config_fp, mobility_reduction_fp, mobility_matrix_fp, metapop_fp, init_conditions_fp]:

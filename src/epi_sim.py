@@ -169,7 +169,7 @@ class EpiSim:
     def update_config(self, config):
         self.config_path = self.handle_config_input(self.model_state_folder, config)
 
-    def run_model(self, length_days, start_date, end_date, model_state=None):
+    def run_model(self, override_config=None, override_model_state=None):
         """
         Run the compiled model for a specific time period.
 
@@ -193,14 +193,17 @@ class EpiSim:
         cmd.extend(["--data-folder", self.data_folder])
         cmd.extend(["--instance-folder", self.model_state_folder])
 
-        if model_state:
-            cmd.extend(["--initial-conditions", model_state])
+        if override_model_state:
+            cmd.extend(["--initial-conditions", override_model_state])
 
-        # save the model state at the final day of the run
-        cmd.extend(["--export-compartments-time-t", str(length_days)])
-        # this overrides the config.json !!
-        cmd.extend(["--start-date", start_date])
-        cmd.extend(["--end-date", end_date])
+        if override_config and isinstance(override_config, dict):
+            if override_config['save_time_step']:
+                # save the model state at a specific time step
+                cmd.extend(["--export-compartments-time-t", str(override_config['save_time_step'])])
+            if override_config['start_date']:
+                cmd.extend(["--start-date", override_config['start_date']])
+            if override_config['end_date']:
+                cmd.extend(["--end-date", override_config['end_date']])
 
         cmdstr = " ".join(cmd)
         logger.debug(f"Running command:\n{cmdstr}")
