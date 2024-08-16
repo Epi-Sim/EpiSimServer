@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Paper, Typography, Stack, Accordion, AccordionSummary, AccordionDetails, Button, CircularProgress } from '@mui/material';
+import { Container, Paper, Typography, Stack, Accordion, AccordionSummary, AccordionDetails, Button, CircularProgress, Link as MuiLink } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers';
@@ -146,7 +146,16 @@ const App = () => {
                 {result.message}
               </Typography>
             )}
-            {hasResults && <DownloadResults data={result.output} />}
+            {hasResults && (
+              <>
+                <DownloadResults data={result.output} />
+                <MuiLink href={`/dash/results/${result.uuid}`} underline="none">
+                  <Button variant="contained" color="secondary">
+                    Go to Analysis Page
+                  </Button>
+                </MuiLink>
+              </>
+            )}
           </Stack>
         </Paper>
       </Container>
