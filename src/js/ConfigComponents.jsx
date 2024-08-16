@@ -245,7 +245,6 @@ const InitialConditionUpload = ({ params, setParams }) => {
 
   return (
     <>
-      <Typography variant="h5" gutterBottom>Initial Condition Upload</Typography>
       <Grid container spacing={2}>
         <Grid item xs={12}>
           <input

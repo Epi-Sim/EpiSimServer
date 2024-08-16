@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Paper, Typography, Stack, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
+import { Container, Paper, Typography, Stack, Accordion, AccordionSummary, AccordionDetails, Button, CircularProgress } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers';
@@ -8,12 +8,15 @@ import { GeneralParams, EpidemicParams, InitialConditionUpload, VaccinationParam
 
 const App = () => {
   const [params, setParams] = useState(() => {
-    try {
-      return require('/models/mitma/config.json');
-    } catch (error) {
-      console.error('Error loading config:', error);
-      return {};
+    const script = document.getElementById('initial-data');
+    if (script) {
+      try {
+        return JSON.parse(script.textContent);
+      } catch (error) {
+        console.error('Error parsing initial data:', error);
+      }
     }
+    return {};
   });
 
   const [engineOptions, setEngineOptions] = useState([]);
@@ -77,6 +80,37 @@ const App = () => {
     }
   ];
 
+  const [isLoading, setIsLoading] = useState(false);
+  const [result, setResult] = useState(null);
+
+  const handleSubmit = async () => {
+    setIsLoading(true);
+    setResult(null);
+    try {
+      const response = await fetch('/run_simulation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          config: params,
+          mobility_reduction: {},
+          mobility_matrix: {},
+          metapop: {},
+          init_conditions: '',
+          backend_engine: params.simulation.backend_engine,
+        }),
+      });
+      const data = await response.json();
+      setResult(data);
+    } catch (error) {
+      console.error('Error submitting simulation:', error);
+      setResult({ status: 'error', message: 'Failed to run simulation' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={enGB}>
       <Container maxWidth="md">
@@ -93,6 +127,19 @@ const App = () => {
                 componentProps={section.props}
               />
             ))}
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleSubmit}
+              disabled={isLoading}
+            >
+              {isLoading ? <CircularProgress size={24} /> : 'Run Simulation'}
+            </Button>
+            {result && (
+              <Typography color={result.status === 'success' ? 'success' : 'error'}>
+                {result.message}
+              </Typography>
+            )}
           </Stack>
         </Paper>
       </Container>

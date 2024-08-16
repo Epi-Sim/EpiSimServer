@@ -7,6 +7,9 @@
 </head>
 <body>
     <div id="root"></div>
+    <script id="initial-data" type="application/json">
+        {{ config_json | safe }}
+    </script>
     <script src="{{ url_for('static', filename='js/bundle.js') }}"></script>
 </body>
 </html>
