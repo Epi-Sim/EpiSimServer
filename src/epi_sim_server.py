@@ -96,15 +96,23 @@ def server_run_simulation():
 
         # Run the model
         app.logger.debug("Running model")
-        output = model.run_model(2, "2024-03-01", "2024-03-03")
+        id, output = model.run_model(2, "2024-03-01", "2024-03-03")
         
         # Clean up the temporary files
         for fp in [config_fp, mobility_reduction_fp, mobility_matrix_fp, metapop_fp, init_conditions_fp]:
             os.unlink(fp)
 
         app.logger.info("Simulation completed successfully")
+        # Read the model output
+        output_file = os.path.join(instance_folder, id, "output", "compartments_full.nc")
+        assert os.path.exists(output_file), f"Output file {output_file} does not exist"
+        with open(output_file, "rb") as f:
+            output_data = f.read()
+
+        # Encode the output data
+        encoded_output = base64.b64encode(output_data).decode('ascii')
         
-        return jsonify({"status": "success", "message": "Simulation completed successfully", "output": output}), 200
+        return jsonify({"status": "success", "message": "Simulation completed successfully", "output": encoded_output}), 200
 
     except Exception as e:
         app.logger.error(f"Error in run_simulation: {str(e)}", exc_info=True)

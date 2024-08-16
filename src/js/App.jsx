@@ -5,6 +5,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { enGB } from 'date-fns/locale';
 import { GeneralParams, EpidemicParams, InitialConditionUpload, VaccinationParams, NPIParams } from './ConfigComponents';
+import DownloadResults from './DownloadResults';
 
 const App = () => {
   const [params, setParams] = useState(() => {
@@ -82,10 +83,12 @@ const App = () => {
 
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState(null);
+  const [hasResults, setHasResults] = useState(false);
 
   const handleSubmit = async () => {
     setIsLoading(true);
     setResult(null);
+    setHasResults(false);
     try {
       const response = await fetch('/run_simulation', {
         method: 'POST',
@@ -103,6 +106,9 @@ const App = () => {
       });
       const data = await response.json();
       setResult(data);
+      if (data.status === 'success') {
+        setHasResults(true);
+      }
     } catch (error) {
       console.error('Error submitting simulation:', error);
       setResult({ status: 'error', message: 'Failed to run simulation' });
@@ -140,6 +146,7 @@ const App = () => {
                 {result.message}
               </Typography>
             )}
+            {hasResults && <DownloadResults data={result.output} />}
           </Stack>
         </Paper>
       </Container>

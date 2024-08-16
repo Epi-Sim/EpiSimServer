@@ -209,7 +209,7 @@ class EpiSim:
         if result.returncode != 0:
             raise RuntimeError(f"Model execution failed: {result.stderr}")
 
-        return result.stdout
+        return self.uuid, result.stdout
 
     def model_state_filename(self, end_date):
         return os.path.join(self.model_state_folder, "output", f"compartments_t_{end_date}.h5")
