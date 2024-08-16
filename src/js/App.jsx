@@ -44,61 +44,71 @@ const App = () => {
     setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
   };
 
+  const sections = [
+    {
+      key: 'initialCondition',
+      title: 'Initial Condition Upload',
+      component: InitialConditionUpload,
+      props: { params: params, setParams: (newData) => updateParams('initial_conditions', newData) }
+    },
+    {
+      key: 'general',
+      title: 'General Parameters',
+      component: GeneralParams,
+      props: { params: params.simulation, setParams: (newData) => updateParams('simulation', newData), engineOptions: engineOptions || [] }
+    },
+    {
+      key: 'epidemic',
+      title: 'Epidemic Parameters',
+      component: EpidemicParams,
+      props: { params: params.epidemic_params, setParams: (newData) => updateParams('epidemic_params', newData) }
+    },
+    {
+      key: 'vaccination',
+      title: 'Vaccination Parameters',
+      component: VaccinationParams,
+      props: { params: params.vaccination, setParams: (newData) => updateParams('vaccination', newData) }
+    },
+    {
+      key: 'NPI',
+      title: 'Non-Pharmaceutical Interventions',
+      component: NPIParams,
+      props: { params: params.NPI, setParams: (newData) => updateParams('NPI', newData) }
+    }
+  ];
+
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={enGB}>
       <Container maxWidth="md">
         <Paper elevation={3} style={{ padding: '20px', marginTop: '20px' }}>
           <Stack spacing={2}>
             <Typography variant="h4" gutterBottom>Model Configuration</Typography>
-            <Accordion expanded={openSections.initialCondition} onChange={() => toggleSection('initialCondition')}>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography>Initial Condition Upload</Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <InitialConditionUpload params={params} setParams={(newData) => updateParams('initial_conditions', newData)} />
-              </AccordionDetails>
-            </Accordion>
-            <Accordion expanded={openSections.general} onChange={() => toggleSection('general')}>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography>General Parameters</Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <GeneralParams 
-                  params={params.simulation} 
-                  setParams={(newData) => updateParams('simulation', newData)} 
-                  engineOptions={engineOptions || []} 
-                />
-              </AccordionDetails>
-            </Accordion>
-            <Accordion expanded={openSections.epidemic} onChange={() => toggleSection('epidemic')}>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography>Epidemic Parameters</Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <EpidemicParams params={params.epidemic_params} setParams={(newData) => updateParams('epidemic_params', newData)} />
-              </AccordionDetails>
-            </Accordion>
-            <Accordion expanded={openSections.vaccination} onChange={() => toggleSection('vaccination')}>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography>Vaccination Parameters</Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <VaccinationParams params={params.vaccination} setParams={(newData) => updateParams('vaccination', newData)} />
-              </AccordionDetails>
-            </Accordion>
-            <Accordion expanded={openSections.npi} onChange={() => toggleSection('npi')}>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography>Non-Pharmaceutical Interventions</Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <NPIParams params={params.NPI} setParams={(newData) => updateParams('NPI', newData)} />
-              </AccordionDetails>
-            </Accordion>
+            {sections.map(section => (
+              <ConfigSection
+                key={section.key}
+                title={section.title}
+                isOpen={openSections[section.key]}
+                onToggle={() => toggleSection(section.key)}
+                component={section.component}
+                componentProps={section.props}
+              />
+            ))}
           </Stack>
         </Paper>
       </Container>
     </LocalizationProvider>
   );
 };
+
+const ConfigSection = ({ title, isOpen, onToggle, component: Component, componentProps }) => (
+  <Accordion expanded={isOpen} onChange={onToggle}>
+    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+      <Typography>{title}</Typography>
+    </AccordionSummary>
+    <AccordionDetails>
+      <Component {...componentProps} />
+    </AccordionDetails>
+  </Accordion>
+);
 
 export default App;
