@@ -19,7 +19,7 @@ app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
 dash_app = Dash(
     __name__,
     server=app,
-    url_base_pathname="/",
+    url_base_pathname="/dash/",
     external_stylesheets=[dbc.themes.BOOTSTRAP],
     suppress_callback_exceptions=True,
 )
@@ -45,12 +45,9 @@ def engine_options():
 
 
 @app.route('/')
-def home_layout():
-    return html.Div([
-        html.H1("Welcome to EpiSim Server"),
-        html.P("Use the /run_simulation endpoint to run simulations."),
-        dcc.Link("Setup", href="/setup"),
-    ])
+def home():
+    return render_template('home.html')
+
 
 def write_json_to_data_folder(data, filename):
     file_path = os.path.join(os.path.dirname(__file__), os.pardir, "models/mitma", filename)
