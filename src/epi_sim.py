@@ -216,6 +216,7 @@ class EpiSim:
 
     def update_model_state(self, end_date):
         self.model_state = self.model_state_filename(end_date)
+        return self
 
     def set_backend_engine(self, engine):
         """
@@ -231,6 +232,7 @@ class EpiSim:
             raise ValueError("Invalid backend engine. Choose 'MMCACovid19Vac' or 'MMCACovid19'.")
         self.backend_engine = engine
         logger.info(f"Backend engine set to: {self.backend_engine}")
+        return self
 
     @staticmethod
     def handle_config_input(model_state_folder, config):

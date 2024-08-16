@@ -63,24 +63,33 @@ def server_run_simulation():
     try:
         payload = request.json
 
-        # Write JSON payload contents to files
-        config_fp = write_json_to_data_folder(json.loads(payload['config']), 'config.json')
-        mobility_reduction_fp = write_json_to_data_folder(json.loads(payload['mobility_reduction']), 'mobility_reduction.json')
-        mobility_matrix_fp = write_json_to_data_folder(json.loads(payload['mobility_matrix']), 'mobility_matrix.json')
-        metapop_fp = write_json_to_data_folder(json.loads(payload['metapop']), 'metapop.json')
+        # Create temporary files for JSON payload contents
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as config_file, \
+             tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as mobility_reduction_file, \
+             tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as mobility_matrix_file, \
+             tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as metapop_file, \
+             tempfile.NamedTemporaryFile(mode='wb', suffix='.nc', delete=False) as init_conditions_file:
+
+            json.dump(payload['config'], config_file)
+            json.dump(payload['mobility_reduction'], mobility_reduction_file)
+            json.dump(payload['mobility_matrix'], mobility_matrix_file)
+            json.dump(payload['metapop'], metapop_file)
+            
+            config_fp = config_file.name
+            mobility_reduction_fp = mobility_reduction_file.name
+            mobility_matrix_fp = mobility_matrix_file.name
+            metapop_fp = metapop_file.name
+            
+            decoded_data = base64.b64decode(payload['init_conditions'])
+            init_conditions_file.write(decoded_data)
+            init_conditions_fp = init_conditions_file.name
 
         data_folder = os.path.join(os.path.dirname(__file__), os.pardir, "models/mitma")
         instance_folder = os.path.join(os.path.dirname(__file__), os.pardir, "runs")
 
-        # Create a temporary file for the initial conditions
-        with tempfile.NamedTemporaryFile(suffix='.nc', delete=False) as temp_file:
-            temp_file_path = temp_file.name
-            decoded_data = base64.b64decode(payload['init_conditions'])
-            temp_file.write(decoded_data)
-
         app.logger.debug(f"config path: {config_fp}")
         model = (
-            EpiSim(config_fp, data_folder, instance_folder, temp_file_path)
+            EpiSim(config_fp, data_folder, instance_folder, init_conditions_fp)
             .setup('interpreter')
             .set_backend_engine(payload['backend_engine'])
         )
@@ -89,8 +98,9 @@ def server_run_simulation():
         app.logger.debug("Running model")
         output = model.run_model(2, "2024-03-01", "2024-03-03")
         
-        # Clean up the temporary file
-        os.unlink(temp_file_path)
+        # Clean up the temporary files
+        for fp in [config_fp, mobility_reduction_fp, mobility_matrix_fp, metapop_fp, init_conditions_fp]:
+            os.unlink(fp)
 
         app.logger.info("Simulation completed successfully")
         
@@ -99,6 +109,5 @@ def server_run_simulation():
     except Exception as e:
         app.logger.error(f"Error in run_simulation: {str(e)}", exc_info=True)
         return jsonify({"status": "error", "message": str(e)}), 500
-
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
