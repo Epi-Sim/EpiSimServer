@@ -348,46 +348,42 @@ const NPIParams = ({ params, setParams }) => {
     setParams({ ...params, [field]: value });
   };
 
+  // Ensure all required fields are initialized
+  const npiParams = {
+    "κ₀s": params["κ₀s"] || [],
+    "ϕs": params["ϕs"] || [],
+    "δs": params["δs"] || [],
+    "tᶜs": params["tᶜs"] || [],
+  };
+
   return (
     <>
       <Typography variant="h5" gutterBottom>Non-Pharmaceutical Interventions</Typography>
       <Grid container spacing={2}>
-        <Grid item xs={12}>
-          <TextField
-            fullWidth
-            label="κ₀s: Mobility reduction factor"
-            value={params["κ₀s"].join(', ')}
-            onChange={handleInputChange('κ₀s')}
-          />
-        </Grid>
-        <Grid item xs={12}>
-          <TextField
-            fullWidth
-            label="ϕs: Confined household permeability factor"
-            value={params.ϕs.join(', ')}
-            onChange={handleInputChange('ϕs')}
-          />
-        </Grid>
-        <Grid item xs={12}>
-          <TextField
-            fullWidth
-            label="δs: Social distancing factor"
-            value={params.δs.join(', ')}
-            onChange={handleInputChange('δs')}
-          />
-        </Grid>
-        <Grid item xs={12}>
-          <TextField
-            fullWidth
-            label="ts: Timesteps at which confinement (lockdown) is applied"
-            value={params.tᶜs.join(', ')}
-            onChange={handleInputChange('tᶜs')}
-          />
-        </Grid>
-        {/* Add other NPI fields similarly */}
+        {Object.entries(npiParams).map(([field, value]) => (
+          <Grid item xs={12} key={field}>
+            <TextField
+              fullWidth
+              label={`${field}: ${getFieldLabel(field)}`}
+              value={value.join(', ')}
+              onChange={handleInputChange(field)}
+            />
+          </Grid>
+        ))}
       </Grid>
     </>
   );
+};
+
+// Helper function to get field labels
+const getFieldLabel = (field) => {
+  const labels = {
+    "κ₀s": "Mobility reduction factor",
+    "ϕs": "Confined household permeability factor",
+    "δs": "Social distancing factor",
+    "tᶜs": "Timesteps at which confinement (lockdown) is applied",
+  };
+  return labels[field] || "";
 };
 
 export {
