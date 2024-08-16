@@ -29,6 +29,7 @@ build/*
 output/*.nc
 output/*.csv
 output/*.hdf5
+src/static/js/bundle.*
 
 episim
 bin/episim

@@ -30,8 +30,8 @@ dash_app.layout = html.Div([
 ])
 
 
-@app.route('/setup2')
-def setup2():
+@app.route('/setup')
+def setup():
     config_path = os.path.join(os.path.dirname(__file__), os.pardir, "models/mitma/config.json")
 
     with open(config_path, 'r') as f:
@@ -50,8 +50,6 @@ def home_layout():
         html.H1("Welcome to EpiSim Server"),
         html.P("Use the /run_simulation endpoint to run simulations."),
         dcc.Link("Setup", href="/setup"),
-        html.Br(),
-        dcc.Link("React setup", href="/setup2"),
     ])
 
 def write_json_to_data_folder(data, filename):
