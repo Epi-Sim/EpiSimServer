@@ -36,3 +36,4 @@ bin/episim
 
 venv/
 localvenv/
+node_modules

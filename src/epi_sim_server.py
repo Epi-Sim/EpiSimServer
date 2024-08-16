@@ -1,17 +1,21 @@
-from flask import Flask, request, jsonify, render_template_string
+from flask import Flask, request, jsonify, render_template
 import json
 import os
 import tempfile
 import base64
 from epi_sim import EpiSim
-from dash import Dash, html, dcc, Input, Output, State
-import plotly.express as px
+from dash import Dash, html, dcc, Input, Output, State, callback_context
 import dash_bootstrap_components as dbc
-from datetime import datetime
+import requests
+from dash.exceptions import PreventUpdate
 
 import model_param_forms as mpf
 
-app = Flask(__name__)
+template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'html'))
+static_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'static'))
+
+app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
+
 dash_app = Dash(
     __name__,
     server=app,
@@ -24,6 +28,16 @@ dash_app.layout = html.Div([
     dcc.Location(id='url', refresh=False),
     html.Div(id='page-content')
 ])
+
+
+@app.route('/setup2')
+def setup2():
+    return render_template('index.html')
+
+@app.route('/engine_options')
+def engine_options():
+    return jsonify(EpiSim.BACKEND_ENGINES)
+
 
 @dash_app.callback(Output('page-content', 'children'),
                    Input('url', 'pathname'))
@@ -38,6 +52,8 @@ def home_layout():
         html.H1("Welcome to EpiSim Server"),
         html.P("Use the /run_simulation endpoint to run simulations."),
         dcc.Link("Setup", href="/setup"),
+        html.Br(),
+        dcc.Link("React setup", href="/setup2"),
     ])
 
 def setup_layout():
@@ -52,6 +68,7 @@ def setup_layout():
 
 
     return dbc.Container([
+        dcc.Store(id='config-store', data=config),
         html.H1("Model configuration"),
         dbc.Form([
             *mpf.initial_condition_upload(),
@@ -93,70 +110,122 @@ def setup_layout():
                 ], title="Non-Pharmaceutical Interventions")
             ], start_collapsed=True),
 
-            dbc.Button("Update Configuration", id="submit-button", color="primary", className="mt-3")
-        ]),
-        html.Div(id='output-message', className="mt-3")
+            dbc.Button("Run Simulation", id="run-simulation-button", color="primary", className="mt-3"),
+            html.Div(id='simulation-output', className="mt-3")
+        ])
     ])
 
 @dash_app.callback(
-    Output('output-message', 'children'),
-    Input('submit-button', 'n_clicks'),
-    State('start-date', 'date'),
-    State('end-date', 'date'),
+    Output('config-store', 'data', allow_duplicate=True),
+    Input('url', 'pathname'),
+    prevent_initial_call='initial_duplicate'
+)
+def initialize_config_store(pathname):
+    if pathname == '/setup':
+        config_path = os.path.join(os.path.dirname(__file__), os.pardir, "models/mitma/config.json")
+        with open(config_path, 'r') as f:
+            return json.load(f)
+    raise PreventUpdate
+
+@dash_app.callback(
+    Output('config-store', 'data', allow_duplicate=True),
+    Input('start-date', 'date'),
+    Input('end-date', 'date'),
     State('save-full-output', 'value'),
     State('save-time-step-checkbox', 'value'),
     State('save-time-step', 'value'),
     State('output-folder', 'value'),
     State('output-format', 'value'),
-    State('backend-engine', 'value')
-)
-def update_general_params(n_clicks, start_date, end_date, save_full_output, save_time_step_enabled, save_time_step, output_folder, output_format, backend_engine):
-    if n_clicks is None:
-        return ""
-    
-    updated_config = {
-        "start_date": start_date,
-        "end_date": end_date,
-        "save_full_output": save_full_output,
-        "save_time_step_enabled": save_time_step_enabled,
-        "save_time_step": save_time_step if save_time_step_enabled else None,
-        "output_folder": output_folder,
-        "output_format": output_format,
-        "backend_engine": backend_engine
-    }
-    
-    # Here you can add logic to save the updated configuration and set the backend engine
-    # For example:
-    # epi_sim_instance.set_backend_engine(backend_engine)
-    
-    return f"Configuration updated: {json.dumps(updated_config, indent=2)}"
-
-@dash_app.callback(
-    Output('output-message', 'children'),
-    Input('submit-button', 'n_clicks'),
+    State('backend-engine', 'value'),
+    State('config-store', 'data'),
+    # vaccination params
     State('are-there-vaccines', 'value'),
     State('epsilon-g', 'value'),
     State('percentage-vacc-per-day', 'value'),
     State('start-vacc', 'value'),
-    State('dur-vacc', 'value')
+    State('dur-vacc', 'value'),
+    prevent_initial_call=True
 )
-def update_vaccination_params(n_clicks, are_there_vaccines, epsilon_g, percentage_vacc_per_day, start_vacc, dur_vacc):
+def update_config_store(*args):
+    (
+        start_date,
+        end_date,
+        save_full_output,
+        save_time_step_enabled,
+        save_time_step,
+        output_folder,
+        output_format,
+        backend_engine,
+        config,
+        are_there_vaccines,
+        epsilon_g,
+        percentage_vacc_per_day,
+        start_vacc,
+        dur_vacc,
+    ) = args
+
+    ctx = callback_context
+    if not ctx.triggered:
+        raise PreventUpdate
+
+    input_id = ctx.triggered[0]['prop_id'].split('.')[0]
+
+    if input_id == 'start-date':
+        config['simulation']['start_date'] = start_date
+    elif input_id == 'end-date':
+        config['simulation']['end_date'] = end_date
+    elif input_id == 'save-full-output':
+        config['simulation']['save_full_output'] = save_full_output
+    elif input_id == 'save-time-step-checkbox':
+        config['simulation']['save_time_step_enabled'] = save_time_step_enabled
+    elif input_id == 'save-time-step':
+        config['simulation']['save_time_step'] = save_time_step if save_time_step_enabled else None
+    elif input_id == 'output-folder':
+        config['simulation']['output_folder'] = output_folder
+    elif input_id == 'output-format':
+        config['simulation']['output_format'] = output_format
+    elif input_id == 'backend-engine':
+        config['simulation']['backend_engine'] = backend_engine
+    elif input_id == 'are-there-vaccines':
+        config['vaccination']['are_there_vaccines'] = are_there_vaccines
+    elif input_id == 'epsilon-g':
+        config['vaccination']['ϵᵍ'] = [float(x.strip()) for x in epsilon_g.split(',')]
+    elif input_id == 'percentage-vacc-per-day':
+        config['vaccination']['percentage_of_vacc_per_day'] = percentage_vacc_per_day
+    elif input_id == 'start-vacc':
+        config['vaccination']['start_vacc'] = start_vacc
+    elif input_id == 'dur-vacc':
+        config['vaccination']['dur_vacc'] = dur_vacc
+
+    app.logger.debug(f"config: {config}")
+    return config
+
+@dash_app.callback(
+    Output('simulation-output', 'children'),
+    Input('run-simulation-button', 'n_clicks'),
+    State('config-store', 'data'),
+    prevent_initial_call=True
+)
+def run_simulation(n_clicks, config):
     if n_clicks is None:
-        return ""
-    
-    updated_config = {
-        "are_there_vaccines": are_there_vaccines,
-        "ϵᵍ": [float(x.strip()) for x in epsilon_g.split(',')],
-        "percentage_of_vacc_per_day": percentage_vacc_per_day,
-        "start_vacc": start_vacc,
-        "dur_vacc": dur_vacc
+        raise PreventUpdate
+
+    payload = {
+        'config': json.dumps(config),
+        'mobility_reduction': json.dumps({}),  # Load from file or prepare as needed
+        'mobility_matrix': json.dumps({}),  # Load from file or prepare as needed
+        'metapop': json.dumps({}),  # Load from file or prepare as needed
+        'init_conditions': '',  # Prepare as needed
+        'backend_engine': config['simulation']['backend_engine']
     }
+
+    response = requests.post('http://localhost:5000/run_simulation', json=payload)
     
-    # Here you can add logic to save the updated configuration
-    # For example:
-    # epi_sim_instance.update_vaccination_params(updated_config)
-    
-    return f"Vaccination parameters updated: {json.dumps(updated_config, indent=2)}"
+    if response.status_code == 200:
+        result = response.json()
+        return f"Simulation completed successfully. Output: {result['output']}"
+    else:
+        return f"Error running simulation: {response.json()['message']}"
 
 
 # when the save-time-step checkbox is unchecked, the daypicker field is disabled
@@ -228,4 +297,4 @@ def server_run_simulation():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 if __name__ == '__main__':
-    dash_app.run_server(debug=True)
+    app.run(debug=True, port=5000)
