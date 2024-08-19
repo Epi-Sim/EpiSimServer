@@ -15,12 +15,15 @@ import numpy as np
 
 import model_param_forms as mpf
 
+from db.db import DATABASE_PATH, create_database, store_simulation_result, read_simulation
+
 template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'html'))
 static_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'static'))
 
 app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
 app.config['DATA_FOLDER'] = os.path.join(os.path.dirname(__file__), os.pardir, "models/mitma")
 app.config['INSTANCE_FOLDER'] = os.path.join(os.path.dirname(__file__), os.pardir, "runs")
+app.config['DATABASE_PATH'] = DATABASE_PATH
 
 dash_app = Dash(
     __name__,
@@ -110,13 +113,14 @@ def server_run_simulation():
         # Read the model output
         output_file = os.path.join(instance_folder, id, "output", "compartments_full.nc")
         assert os.path.exists(output_file), f"Output file {output_file} does not exist"
-        with open(output_file, "rb") as f:
-            output_data = f.read()
-
-        # Encode the output data
-        encoded_output = base64.b64encode(output_data).decode('ascii')
         
-        return jsonify({"status": "success", "message": "Simulation completed successfully", "output": encoded_output, "uuid": id}), 200
+        # Store the output in SQLite
+        with open(output_file, 'rb') as f:
+            output_data = f.read()
+        
+        store_simulation_result(id, output_data)
+
+        return jsonify({"status": "success", "message": "Simulation completed and stored", "uuid": id}), 200
 
     except Exception as e:
         app.logger.error(f"Error in run_simulation: {str(e)}", exc_info=True)
@@ -128,7 +132,7 @@ def create_results_layout(simulation_id):
         dcc.Graph(id='results-graph'),
         dcc.Dropdown(id='compartment-selector', multi=True, value=['I', 'R']),
         dcc.Dropdown(id='region-selector', multi=True),
-        dcc.RangeSlider(id='time-range-slider', min=0, max=100, step=1, value=[0, 100], marks=None),
+        dcc.RangeSlider(id='time-range-slider', min=0, max=100, step=1, value=[], marks=None),
         dcc.Dropdown(id='age-selector', multi=True),
         dcc.Dropdown(id='vaccination-selector', multi=True, value=['NV', 'V']),
     ])
@@ -155,9 +159,11 @@ def display_page(pathname):
 def update_dropdowns(pathname):
     if pathname.startswith('/dash/results/'):
         simulation_id = pathname.split('/')[-1]
-        output_file = os.path.join(app.config['INSTANCE_FOLDER'], simulation_id, "output", "compartments_full.nc")
-        ds = xr.open_dataset(output_file)
-        ds = ds.assign_coords(T=pd.to_datetime(ds.T.values))
+        ds = read_simulation(simulation_id)
+        
+        if ds is None:
+            app.logger.error(f"using default graph values for simulation {simulation_id} not found")
+            return [], [], 0, 100, {}, [0, 100], [], []
         
         compartments = [{'label': c, 'value': c} for c in ds.epi_states.values]
         regions = [{'label': r, 'value': r} for r in ds.M.values]
@@ -193,8 +199,11 @@ def update_dropdowns(pathname):
 )
 def update_graph(selected_compartments, selected_regions, time_range, selected_ages, selected_vaccinations, pathname):
     simulation_id = pathname.split('/')[-1]
-    output_file = os.path.join(app.config['INSTANCE_FOLDER'], simulation_id, "output", "compartments_full.nc")
-    ds = xr.open_dataset(output_file)
+    ds = read_simulation(simulation_id)
+
+    if ds is None:
+        app.logger.error(f"using default graph values for simulation {simulation_id} not found")
+        return px.line()
     
     # Create a dictionary of filters, excluding None values
     filters = {}
@@ -224,6 +233,8 @@ def update_graph(selected_compartments, selected_regions, time_range, selected_a
     df = summed_ds.to_dataframe().reset_index()
     
     # Create the line plot
+    app.logger.debug(f"plotting simulation output for simulation {simulation_id}")
+    app.logger.debug(f"filters: {filters}")
     fig = px.line(df, x='T', y='data', color='epi_states', line_dash='V',
                   title='Compartment Values Over Time',
                   labels={'T': 'Time', 'data': 'Population', 'epi_states': 'Compartments', 'V': 'Vaccination'})
@@ -231,4 +242,5 @@ def update_graph(selected_compartments, selected_regions, time_range, selected_a
     return fig
 
 if __name__ == '__main__':
+    create_database()
     app.run(debug=True, port=5000)
