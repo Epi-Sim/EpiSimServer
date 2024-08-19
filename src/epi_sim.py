@@ -207,10 +207,13 @@ class EpiSim:
 
         cmdstr = " ".join(cmd)
         logger.debug(f"Running command:\n{cmdstr}")
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        with open('episimlogs.txt', 'w') as log_file:
+            result = subprocess.run(cmd, stdout=log_file, stderr=subprocess.STDOUT, text=True)
 
         if result.returncode != 0:
-            raise RuntimeError(f"Model execution failed: {result.stderr}")
+            raise RuntimeError(f"Model execution failed: {stderr_output}")
+
+        logger.debug(f"Subprocess output:\n{stdout_output}")
 
         return self.uuid, result.stdout
 

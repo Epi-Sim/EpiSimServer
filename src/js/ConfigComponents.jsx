@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Grid, TextField, Button, Typography, Checkbox, FormControlLabel, MenuItem } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { parseISO, format } from 'date-fns';
+import FileUpload from './FileUpload';
 
 const GeneralParams = ({ params, setParams, engineOptions }) => {
   // Parse initial date values
@@ -235,40 +236,127 @@ const EpidemicParams = ({ params, setParams }) => {
   );
 };
 
-const InitialConditionUpload = ({ params, setParams }) => {
+const InitialConditionUpload = ({ file, setFile }) => {
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
     if (file) {
-      setParams({ ...params, initialConditionFile: file });
+      setFile(file);
     }
   };
 
+  const fileSample = {
+    sample: `<xarray.Dataset> Size: 76MB
+Dimensions:     (epi_states: 10, V: 3, T: 37, M: 2850, G: 3)
+Coordinates:
+  * G           (G) <U1 12B 'Y' 'M' 'O'
+  * T           (T) datetime64[ns] 296B 2020-03-10 2020-03-11 ... 2020-04-15
+  * V           (V) <U2 24B 'NV' 'V' 'PV'
+  * epi_states  (epi_states) <U2 80B 'S' 'E' 'A' 'I' 'PH' 'PD' 'HR' 'HD' 'R' 'D'
+  * M           (M) <U10 114kB '01001_AM' '01002' ... '5200107' '5200108'
+Data variables:
+  data        (epi_states, V, T, M, G) float64 76MB ...`,
+    formats: ['.nc']
+  };
+
   return (
-    <>
-      <Grid container spacing={2}>
-        <Grid item xs={12}>
-          <input
-            accept=".csv,.json,.nc"
-            style={{ display: 'none' }}
-            id="initial-condition-file"
-            type="file"
-            onChange={handleFileUpload}
-          />
-          <label htmlFor="initial-condition-file">
-            <Button variant="contained" component="span">
-              Upload Initial Condition File
-            </Button>
-          </label>
-          {params.initialConditionFile && (
-            <Typography variant="body2" style={{ marginTop: '10px' }}>
-              File selected: {params.initialConditionFile.name}
-            </Typography>
-          )}
-        </Grid>
-      </Grid>
-    </>
+    <Grid container spacing={2}>
+      <FileUpload
+        label="Upload Initial Condition File"
+        accept=".csv,.json,.nc"
+        onFileChange={handleFileUpload}
+        selectedFile={file}
+        FileSample={fileSample}
+      />
+    </Grid>
   );
 }
+
+const MetapopulationUpload = ({ file, setFile }) => {
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      setFile(file);
+    }
+  };
+
+  const fileSample = {
+    sample: `id,area,Y,M,O,Total
+01001_AM,358495702.254284,1065,4747,3102,8914
+01002,96152612.3784106,2470,5916,2117,10503
+01010_AM,198919890.011614,1554,3583,1263,6400`,
+    formats: ['.csv']
+  };
+
+  return (
+    <Grid container spacing={2}>
+      <FileUpload
+        label="Upload Population Data File"
+        accept=".csv"
+        onFileChange={handleFileUpload}
+        selectedFile={file}
+        FileSample={fileSample}
+      />
+    </Grid>
+  );
+}
+
+const PopulationMobilityUpload = ({ file, setFile }) => {
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      setFile(file);
+    }
+  };
+
+  const fileSample = {
+    sample: `source_idx,target_idx,ratio
+1,1,0.15384793162874416
+1,3,0.002993247160170764
+1,6,0.01013232372521305`,
+    formats: ['.csv']
+  };
+
+  return (
+    <Grid container spacing={2}>
+      <FileUpload
+        label="Upload Population Mobility File"
+        accept=".csv"
+        onFileChange={handleFileUpload}
+        selectedFile={file}
+        FileSample={fileSample}
+      />
+    </Grid>
+  );
+};
+
+const MobilityReductionUpload = ({ file, setFile }) => {
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      setFile(file);
+    }
+  };
+
+  const fileSample = {
+    sample: `date,reduction,datetime,time
+2020-03-16,0.5053579375294793,2020-03-16,36
+2020-03-17,0.5277371481621038,2020-03-17,37
+2020-03-18,0.5326431034118155,2020-03-18,38`,
+    formats: ['.csv']
+  };
+
+  return (
+    <Grid container spacing={2}>
+      <FileUpload
+        label="Upload Mobility Reduction File"
+        accept=".csv"
+        onFileChange={handleFileUpload}
+        selectedFile={file}
+        FileSample={fileSample}
+      />
+    </Grid>
+  );
+};
 
 const VaccinationParams = ({ params, setParams }) => {
   const handleInputChange = (field) => (event) => {
@@ -388,6 +476,9 @@ const getFieldLabel = (field) => {
 
 export {
   InitialConditionUpload,
+  MetapopulationUpload,
+  PopulationMobilityUpload,
+  MobilityReductionUpload,
   EpidemicParams,
   GeneralParams,
   VaccinationParams,

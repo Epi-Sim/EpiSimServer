@@ -4,7 +4,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { enGB } from 'date-fns/locale';
-import { GeneralParams, EpidemicParams, InitialConditionUpload, VaccinationParams, NPIParams } from './ConfigComponents';
+import { GeneralParams, EpidemicParams, InitialConditionUpload, VaccinationParams, NPIParams, MetapopulationUpload, PopulationMobilityUpload, MobilityReductionUpload } from './ConfigComponents';
 import DownloadResults from './DownloadResults';
 
 const App = () => {
@@ -21,6 +21,10 @@ const App = () => {
   });
 
   const [engineOptions, setEngineOptions] = useState([]);
+  const [initialConditionsFile, setInitialConditionsFile] = useState(null);
+  const [populationFile, setPopulationFile] = useState(null);
+  const [mobilityFile, setMobilityFile] = useState(null);
+  const [mobilityReductionFile, setMobilityReductionFile] = useState(null);
 
   useEffect(() => {
     fetch('/engine_options')
@@ -38,6 +42,7 @@ const App = () => {
 
   const [openSections, setOpenSections] = useState({
     initialCondition: true,
+    metapopulation: true,
     general: true,
     epidemic: false,
     vaccination: false,
@@ -53,7 +58,25 @@ const App = () => {
       key: 'initialCondition',
       title: 'Initial Condition Upload',
       component: InitialConditionUpload,
-      props: { params: params, setParams: (newData) => updateParams('initial_conditions', newData) }
+      props: { file: initialConditionsFile, setFile: setInitialConditionsFile }
+    },
+    {
+      key: 'metapopulation',
+      title: 'Metapopulation Data Upload',
+      component: MetapopulationUpload,
+      props: { file: populationFile, setFile: setPopulationFile }
+    },
+    {
+      key: 'populationMobility',
+      title: 'Population Mobility Upload',
+      component: PopulationMobilityUpload,
+      props: { file: mobilityFile, setFile: setMobilityFile }
+    },
+    {
+      key: 'mobilityReduction',
+      title: 'Mobility Reduction Upload',
+      component: MobilityReductionUpload,
+      props: { file: mobilityReductionFile, setFile: setMobilityReductionFile }
     },
     {
       key: 'general',
@@ -90,19 +113,17 @@ const App = () => {
     setResult(null);
     setHasResults(false);
     try {
+      const formData = new FormData();
+      formData.append('config', JSON.stringify(params));
+      formData.append('mobility_reduction', mobilityReductionFile);
+      formData.append('mobility_matrix', mobilityFile);
+      formData.append('metapop', populationFile);
+      formData.append('init_conditions', initialConditionsFile);
+      formData.append('backend_engine', params.simulation.backend_engine);
+
       const response = await fetch('/run_simulation', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          config: params,
-          mobility_reduction: {},
-          mobility_matrix: {},
-          metapop: {},
-          init_conditions: '',
-          backend_engine: params.simulation.backend_engine,
-        }),
+        body: formData,
       });
       const data = await response.json();
       setResult(data);

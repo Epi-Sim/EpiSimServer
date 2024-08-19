@@ -67,60 +67,55 @@ def write_json_to_data_folder(data, filename):
 @app.route('/run_simulation', methods=['POST'])
 def server_run_simulation():
     try:
-        payload = request.json
+        config = json.loads(request.form['config'])
+        mobility_reduction = request.files.get('mobility_reduction')
+        mobility_matrix = request.files.get('mobility_matrix')
+        metapop = request.files.get('metapop')
+        init_conditions = request.files.get('init_conditions')
+        backend_engine = request.form['backend_engine']
 
-        # Create temporary files for JSON payload contents
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as config_file, \
-             tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as mobility_reduction_file, \
-             tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as mobility_matrix_file, \
-             tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as metapop_file, \
-             tempfile.NamedTemporaryFile(mode='wb', suffix='.nc', delete=False) as init_conditions_file:
+        # Create a temporary directory
+        with tempfile.TemporaryDirectory(prefix='EpiSim_') as temp_dir:
+            # Write payload contents to files in the temporary directory
+            config_fp = os.path.join(temp_dir, 'config.json')
+            mobility_reduction_fp = os.path.join(temp_dir, 'kappa0_from_mitma.csv')
+            mobility_matrix_fp = os.path.join(temp_dir, 'R_mobility_matrix.csv')
+            metapop_fp = os.path.join(temp_dir, 'metapopulation_data.csv')
+            init_conditions_fp = os.path.join(temp_dir, 'initial_conditions.nc')
 
-            app.logger.debug(f"payload: {payload}")
-            json.dump(payload['config'], config_file)
-            json.dump(payload['mobility_reduction'], mobility_reduction_file)
-            json.dump(payload['mobility_matrix'], mobility_matrix_file)
-            json.dump(payload['metapop'], metapop_file)
+            with open(config_fp, 'w') as f:
+                json.dump(config, f)
+            mobility_reduction.save(mobility_reduction_fp)
+            mobility_matrix.save(mobility_matrix_fp)
+            metapop.save(metapop_fp)
+            init_conditions.save(init_conditions_fp)
+
+            assert os.path.exists(temp_dir), f"temp_dir {temp_dir} does not exist"
+
+            # the data and instance folder are the same for now
+            # because we put the output into sqlite anyway
+            model = (
+                EpiSim(config_fp, temp_dir, temp_dir, init_conditions_fp)
+                .setup('interpreter')
+                .set_backend_engine(backend_engine)
+            )
+
+            assert os.path.exists(model.model_state_folder), f"model.model_state_folder {model.model_state_folder} does not exist"
+
+            # Run the model
+            id, output = model.run_model()
+
+            # Read the model output
+            output_file = os.path.join(model.model_state_folder, "output", "compartments_full.nc")
+            assert os.path.exists(output_file), f"Output file {output_file} does not exist"
             
-            config_fp = config_file.name
-            mobility_reduction_fp = mobility_reduction_file.name
-            mobility_matrix_fp = mobility_matrix_file.name
-            metapop_fp = metapop_file.name
+            # Store the output in SQLite
+            with open(output_file, 'rb') as f:
+                output_data = f.read()
             
-            decoded_data = base64.b64decode(payload['init_conditions'])
-            init_conditions_file.write(decoded_data)
-            init_conditions_fp = init_conditions_file.name
+            store_simulation_result(id, output_data)
 
-        data_folder = app.config['DATA_FOLDER']
-        instance_folder = app.config['INSTANCE_FOLDER']
-
-        app.logger.debug(f"config path: {config_fp}")
-        model = (
-            EpiSim(config_fp, data_folder, instance_folder, init_conditions_fp)
-            .setup('interpreter')
-            .set_backend_engine(payload['backend_engine'])
-        )
-
-        # Run the model
-        app.logger.debug("Running model")
-        id, output = model.run_model()
-        
-        # Clean up the temporary files
-        for fp in [config_fp, mobility_reduction_fp, mobility_matrix_fp, metapop_fp, init_conditions_fp]:
-            os.unlink(fp)
-
-        app.logger.info("Simulation completed successfully")
-        # Read the model output
-        output_file = os.path.join(instance_folder, id, "output", "compartments_full.nc")
-        assert os.path.exists(output_file), f"Output file {output_file} does not exist"
-        
-        # Store the output in SQLite
-        with open(output_file, 'rb') as f:
-            output_data = f.read()
-        
-        store_simulation_result(id, output_data)
-
-        return jsonify({"status": "success", "message": "Simulation completed and stored", "uuid": id}), 200
+            return jsonify({"status": "success", "message": "Simulation completed and stored", "uuid": id}), 200
 
     except Exception as e:
         app.logger.error(f"Error in run_simulation: {str(e)}", exc_info=True)

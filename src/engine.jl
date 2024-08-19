@@ -115,6 +115,11 @@ function run_engine_io(engine::AbstractEngine, config::Dict, data_path::String, 
     time_step_tosave   = get(simulation_dict, "export_compartments_time_t", nothing)
     output_path = joinpath(instance_path, "output")
 
+    # if output_path does not exist, create it
+    if !isdir(output_path)
+        mkpath(output_path)
+    end
+
     npi_params, network_df, metapop_df, initial_compartments = read_input_files(engine, config, data_path, instance_path, init_condition_path)
 
     epi_params, population, coords = run_engine(engine, config, npi_params, network_df, metapop_df, initial_compartments)
