@@ -211,9 +211,7 @@ class EpiSim:
             result = subprocess.run(cmd, stdout=log_file, stderr=subprocess.STDOUT, text=True)
 
         if result.returncode != 0:
-            raise RuntimeError(f"Model execution failed: {stderr_output}")
-
-        logger.debug(f"Subprocess output:\n{stdout_output}")
+            raise RuntimeError(f"Model execution failed: {result.stdout}")
 
         return self.uuid, result.stdout
 
