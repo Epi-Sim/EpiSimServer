@@ -6,6 +6,36 @@ import { LocalizationProvider } from '@mui/x-date-pickers';
 import { enGB } from 'date-fns/locale';
 import { GeneralParams, EpidemicParams, InitialConditionUpload, VaccinationParams, NPIParams, MetapopulationUpload, PopulationMobilityUpload, MobilityReductionUpload } from './ConfigComponents';
 import DownloadResults from './DownloadResults';
+import InteractiveMap from './InteractiveMap';
+
+const geojsonData = {
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Sample Polygon",
+        "id": "1",
+        "Y": 100,
+        "M": 200,
+        "O": 300
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-71.729, 48.010],
+            [-71.291, 48.004],
+            [-71.291, 47.777],
+            [-71.729, 47.786],
+            [-71.729, 48.010]
+          ]
+        ]
+      }
+    }
+  ]
+};
+
 
 const App = () => {
   const [params, setParams] = useState(() => {
@@ -25,6 +55,7 @@ const App = () => {
   const [populationFile, setPopulationFile] = useState(null);
   const [mobilityFile, setMobilityFile] = useState(null);
   const [mobilityReductionFile, setMobilityReductionFile] = useState(null);
+  const [mapData, setMapData] = useState(geojsonData);
 
   useEffect(() => {
     fetch('/engine_options')
@@ -53,6 +84,11 @@ const App = () => {
     setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
   };
 
+  const handleMapDataChange = (newMapData) => {
+    setMapData(newMapData);
+    // You might want to update other parts of your state or params here
+  };
+
   const sections = [
     {
       key: 'initialCondition',
@@ -77,6 +113,12 @@ const App = () => {
       title: 'Mobility Reduction Upload',
       component: MobilityReductionUpload,
       props: { file: mobilityReductionFile, setFile: setMobilityReductionFile }
+    },
+    {
+      key: 'interactiveMap',
+      title: 'Interactive Map',
+      component: InteractiveMap,
+      props: { mapData: mapData, onMapDataChange: handleMapDataChange }
     },
     {
       key: 'general',
