@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Grid, TextField, Button, Typography, Checkbox, FormControlLabel, MenuItem } from '@mui/material';
+import { Grid, TextField, Button, Typography, Checkbox, FormControlLabel, MenuItem, Dialog, DialogTitle, DialogContent } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { parseISO, format } from 'date-fns';
 import FileUpload from './FileUpload';
@@ -273,11 +273,18 @@ Data variables:
 }
 
 const MetapopulationUpload = ({ file, setFile, mapData, onMapDataChange }) => {
+  const [isMapEditorOpen, setIsMapEditorOpen] = useState(false);
+  const [selectedFeature, setSelectedFeature] = useState(null);
+
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
     if (file) {
       setFile(file);
     }
+  };
+
+  const handleFeatureClick = (feature) => {
+    setSelectedFeature(feature);
   };
 
   const fileSample = {
@@ -297,7 +304,26 @@ const MetapopulationUpload = ({ file, setFile, mapData, onMapDataChange }) => {
         selectedFile={file}
         FileSample={fileSample}
       />
-<PopulationMapEditor mapData={mapData} onMapDataChange={onMapDataChange} />
+      <Grid item xs={12}>
+        <Button variant="contained" onClick={() => setIsMapEditorOpen(true)}>
+          Edit Map
+        </Button>
+      </Grid>
+      <Dialog
+        open={isMapEditorOpen}
+        onClose={() => setIsMapEditorOpen(false)}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogTitle>Edit Population Map</DialogTitle>
+        <DialogContent>
+          <PopulationMapEditor
+            mapData={mapData}
+            onMapDataChange={onMapDataChange}
+            onFeatureClick={handleFeatureClick}
+          />
+        </DialogContent>
+      </Dialog>
     </Grid>
   );
 }
