@@ -1,23 +1,20 @@
 const path = require('path');
 
 module.exports = {
-  entry: './src/js/index.js',
+  entry: './src/js/index.tsx', // Update the entry point to .tsx
   output: {
     filename: 'bundle.js',
     path: path.resolve(__dirname, 'src/static/js'),
   },
-  mode: 'development', // Set the mode to development
-  devtool: 'eval-source-map', // Enable source maps
+  mode: 'development',
+  devtool: 'eval-source-map',
   module: {
     rules: [
       {
-        test: /\.jsx?$/,
+        test: /\.(ts|tsx|js|jsx)$/, // Include .ts and .tsx files
         exclude: /node_modules/,
         use: {
-          loader: 'babel-loader',
-          options: {
-            presets: ['@babel/preset-env', '@babel/preset-react']
-          }
+          loader: 'ts-loader', // Use ts-loader for TypeScript files
         }
       },
       {
@@ -27,6 +24,6 @@ module.exports = {
     ]
   },
   resolve: {
-    extensions: ['.js', '.jsx']
+    extensions: ['.ts', '.tsx', '.js', '.jsx'] // Add .ts and .tsx extensions
   }
 };

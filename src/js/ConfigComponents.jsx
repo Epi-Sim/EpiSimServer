@@ -3,6 +3,7 @@ import { Grid, TextField, Button, Typography, Checkbox, FormControlLabel, MenuIt
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { parseISO, format } from 'date-fns';
 import FileUpload from './FileUpload';
+import PopulationMapEditor from './PopulationMapEditor';
 
 const GeneralParams = ({ params, setParams, engineOptions }) => {
   // Parse initial date values
@@ -271,7 +272,7 @@ Data variables:
   );
 }
 
-const MetapopulationUpload = ({ file, setFile }) => {
+const MetapopulationUpload = ({ file, setFile, mapData, onMapDataChange }) => {
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
     if (file) {
@@ -296,6 +297,7 @@ const MetapopulationUpload = ({ file, setFile }) => {
         selectedFile={file}
         FileSample={fileSample}
       />
+<PopulationMapEditor mapData={mapData} onMapDataChange={onMapDataChange} />
     </Grid>
   );
 }
