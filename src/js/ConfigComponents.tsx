@@ -299,14 +299,16 @@ const MetapopulationUpload = ({ file, setFile, mapData, onMapDataChange }) => {
 
   return (
     <Grid container spacing={2}>
-      <FileUpload
-        label="Upload Population Data File"
-        accept=".csv"
-        onFileChange={handleFileUpload}
-        selectedFile={file}
-        FileSample={fileSample}
-      />
-      <Grid item xs={12}>
+      <Grid item xs={8}>
+        <FileUpload
+          label="Upload Population Data File"
+          accept=".csv"
+          onFileChange={handleFileUpload}
+          selectedFile={file}
+          FileSample={fileSample}
+        />
+      </Grid>
+      <Grid item xs={4}>
         <Button variant="contained" onClick={() => setIsMapEditorOpen(true)}>
           Edit Map
         </Button>
@@ -330,6 +332,7 @@ const MetapopulationUpload = ({ file, setFile, mapData, onMapDataChange }) => {
   );
 }
 
+const PopulationMobilityUpload = ({ file, setFile }) => {
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
     if (file) {
@@ -354,6 +357,7 @@ const MetapopulationUpload = ({ file, setFile, mapData, onMapDataChange }) => {
         selectedFile={file}
         FileSample={fileSample}
       />
+      {/* <MobilityMapEditor mapData={mapData} onMapDataChange={setMapData} /> */}
     </Grid>
   );
 };
@@ -503,11 +507,52 @@ const getFieldLabel = (field) => {
   return labels[field] || "";
 };
 
+const ParameterUpload = ({ 
+  initialConditionsFile, 
+  setInitialConditionsFile,
+  populationFile,
+  setPopulationFile,
+  mobilityFile,
+  setMobilityFile,
+  mobilityReductionFile,
+  setMobilityReductionFile,
+  mapData,
+  onMapDataChange
+}) => {
+  return (
+    <Grid container spacing={2}>
+      <Grid item xs={12}>
+        <InitialConditionUpload
+          file={initialConditionsFile}
+          setFile={setInitialConditionsFile}
+        />
+      </Grid>
+      <Grid item xs={12}>
+        <MetapopulationUpload
+          file={populationFile}
+          setFile={setPopulationFile}
+          mapData={mapData}
+          onMapDataChange={onMapDataChange}
+        />
+      </Grid>
+      <Grid item xs={12}>
+        <PopulationMobilityUpload
+          file={mobilityFile}
+          setFile={setMobilityFile}
+        />
+      </Grid>
+      <Grid item xs={12}>
+        <MobilityReductionUpload
+          file={mobilityReductionFile}
+          setFile={setMobilityReductionFile}
+        />
+      </Grid>
+    </Grid>
+  );
+};
+
 export {
-  InitialConditionUpload,
-  MetapopulationUpload,
-  PopulationMobilityUpload,
-  MobilityReductionUpload,
+  ParameterUpload,
   EpidemicParams,
   GeneralParams,
   VaccinationParams,

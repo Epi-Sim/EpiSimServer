@@ -4,7 +4,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { enGB } from 'date-fns/locale';
-import { GeneralParams, EpidemicParams, InitialConditionUpload, VaccinationParams, NPIParams, MetapopulationUpload, PopulationMobilityUpload, MobilityReductionUpload } from './ConfigComponents';
+import { GeneralParams, EpidemicParams, VaccinationParams, NPIParams, ParameterUpload } from './ConfigComponents';
 import DownloadResults from './DownloadResults';
 import { MapData } from './types/mapTypes';
 import { Config, ConfigSectionType, EngineOption, BackendEngine } from './types/paramsTypes';
@@ -82,8 +82,7 @@ const App = () => {
   };
 
   const [openSections, setOpenSections] = useState({
-    initialCondition: true,
-    metapopulation: true,
+    parameterUpload: true,
     general: true,
     epidemic: false,
     vaccination: false,
@@ -103,33 +102,21 @@ const App = () => {
 
   const sections = params && [
     {
-      key: 'initialCondition',
-      title: 'Initial Condition Upload',
-      component: InitialConditionUpload,
-      props: { file: initialConditionsFile, setFile: setInitialConditionsFile }
-    },
-    {
-      key: 'metapopulation',
-      title: 'Metapopulation Data Upload',
-      component: MetapopulationUpload,
-      props: { 
-        file: populationFile, 
-        setFile: setPopulationFile, 
-        mapData: mapData, 
-        onMapDataChange: handleMapDataChange 
+      key: 'parameterUpload',
+      title: 'Parameter Uploads',
+      component: ParameterUpload,
+      props: {
+        initialConditionsFile,
+        setInitialConditionsFile,
+        populationFile,
+        setPopulationFile,
+        mobilityFile,
+        setMobilityFile,
+        mobilityReductionFile,
+        setMobilityReductionFile,
+        mapData,
+        onMapDataChange: handleMapDataChange
       }
-    },
-    {
-      key: 'populationMobility',
-      title: 'Population Mobility Upload',
-      component: PopulationMobilityUpload,
-      props: { file: mobilityFile, setFile: setMobilityFile }
-    },
-    {
-      key: 'mobilityReduction',
-      title: 'Mobility Reduction Upload',
-      component: MobilityReductionUpload,
-      props: { file: mobilityReductionFile, setFile: setMobilityReductionFile }
     },
     {
       key: 'general',
