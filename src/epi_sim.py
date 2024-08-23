@@ -56,7 +56,10 @@ class EpiSim:
     DEFAULT_INTERPRETER_PATH = ["julia", os.path.join(os.path.dirname(__file__), "run.jl")]
 
     DEFAULT_BACKEND_ENGINE = 'MMCACovid19Vac'
-    BACKEND_ENGINES = ['MMCACovid19Vac', 'MMCACovid19']
+    BACKEND_ENGINES = [
+        { 'name': 'MMCACovid19Vac', 'description': 'Model with vaccination' },
+        { 'name': 'MMCACovid19', 'description': 'Model without vaccination' }
+    ]
 
     def __init__(self, config, data_folder, instance_folder, initial_conditions=None):
         """
@@ -232,8 +235,8 @@ class EpiSim:
         Raises:
             ValueError: If an invalid engine is provided.
         """
-        if engine not in EpiSim.BACKEND_ENGINES:
-            raise ValueError("Invalid backend engine. Choose 'MMCACovid19Vac' or 'MMCACovid19'.")
+        if engine not in [e['name'] for e in EpiSim.BACKEND_ENGINES]:
+            raise ValueError(f"Invalid backend engine {engine}. Choose 'MMCACovid19Vac' or 'MMCACovid19'.")
         self.backend_engine = engine
         logger.info(f"Backend engine set to: {self.backend_engine}")
         return self

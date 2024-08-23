@@ -4,41 +4,44 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { parseISO, format } from 'date-fns';
 import FileUpload from './FileUpload';
 import PopulationMapEditor from './PopulationMapEditor';
+import MobilityMapEditor from './MobilityMapEditor';
+import { SimulationConfig, EngineOption, BackendEngine } from './types/paramsTypes';
 
-const GeneralParams = ({ params, setParams, engineOptions }) => {
+interface GeneralProps {
+  params: SimulationConfig;
+  setParams: (params: SimulationConfig) => void;
+  engineOptions: EngineOption[];
+  backendEngine: BackendEngine;
+  setBackendEngine: (backendEngine: BackendEngine) => void;
+}
+
+// set logical default dates for covid
+const defaultStartDate = "2020-01-01";
+const defaultEndDate = "2020-06-01";
+
+const dateDiff = (startDate: Date, endDate: Date) => {
+  return Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+const GeneralParams: React.FC<GeneralProps> = ({ params, setParams, engineOptions, backendEngine, setBackendEngine }) => {
   // Parse initial date values
-  const [startDate, setStartDate] = useState(() => 
-    params.start_date ? parseISO(params.start_date) : null
+  const [startDate, setStartDate] = useState(
+    params.start_date ? parseISO(params.start_date) : parseISO(defaultStartDate)
   );
-  const [endDate, setEndDate] = useState(() => 
-    params.end_date ? parseISO(params.end_date) : null
+  const [endDate, setEndDate] = useState(
+    params.end_date ? parseISO(params.end_date) : parseISO(defaultEndDate)
   );
-
-  // Calculate initial save_time_step value
-  const initialSaveTimeStep = React.useMemo(() => {
-    if (params.save_time_step !== null && params.save_time_step !== undefined) {
-      return params.save_time_step;
-    }
-    if (startDate && endDate) {
-      return Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
-    }
-    return null;
-  }, [params.save_time_step, startDate, endDate]);
 
   // Add new state variable for saveTimeStep checkbox and value
-  const [saveTimeStepEnabled, setSaveTimeStepEnabled] = useState(params.save_time_step !== null);
-  const [saveTimeStepValue, setSaveTimeStepValue] = useState(params.save_time_step || initialSaveTimeStep);
-  const [maxSaveTimeStep] = useState(initialSaveTimeStep);
+  const maxSaveTimeStep = React.useMemo(() => dateDiff(startDate, endDate), [startDate, endDate]);
+  const [saveTimeStepEnabled, setSaveTimeStepEnabled] = useState(!!params.save_time_step);
+  const [saveTimeStepValue, setSaveTimeStepValue] = useState(params.save_time_step || maxSaveTimeStep);
 
   // Handler functions for updating params
   const handleDateChange = (field) => (date) => {
     if (field === 'start_date') setStartDate(date);
     if (field === 'end_date') setEndDate(date);
     setParams({ ...params, [field]: format(date, 'yyyy-MM-dd') });
-  };
-
-  const handleInputChange = (field) => (event) => {
-    setParams({ ...params, [field]: event.target.value });
   };
 
   const handleCheckboxChange = (field) => (event) => {
@@ -110,17 +113,16 @@ const GeneralParams = ({ params, setParams, engineOptions }) => {
           select
           fullWidth
           label="Backend Engine"
-          value={params.backend_engine}
-          onChange={handleInputChange('backend_engine')}
+          value={backendEngine}
+          onChange={(event) => 
+            setBackendEngine(event.target.value as BackendEngine)
+          }
         >
-          {engineOptions.map((engine) => (
-            <MenuItem key={engine} value={engine}>
-              {engine}
-            </MenuItem>
+          {engineOptions.map((engine, index) => (
+            <MenuItem key={index} value={engine.name}>{engine.name}</MenuItem>
           ))}
         </TextField>
       </Grid>
-      {/* Add other fields similarly */}
     </Grid>
   );
 };
@@ -328,7 +330,6 @@ const MetapopulationUpload = ({ file, setFile, mapData, onMapDataChange }) => {
   );
 }
 
-const PopulationMobilityUpload = ({ file, setFile }) => {
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
     if (file) {

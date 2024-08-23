@@ -7,7 +7,7 @@ import { enGB } from 'date-fns/locale';
 import { GeneralParams, EpidemicParams, InitialConditionUpload, VaccinationParams, NPIParams, MetapopulationUpload, PopulationMobilityUpload, MobilityReductionUpload } from './ConfigComponents';
 import DownloadResults from './DownloadResults';
 import { MapData } from './types/mapTypes';
-import { Config, ConfigSectionType, EngineOption } from './types/paramsTypes';
+import { Config, ConfigSectionType, EngineOption, BackendEngine } from './types/paramsTypes';
 import { SimulationResult } from './types/simulationResultsTypes';
 
 const geojsonData: MapData = {
@@ -40,18 +40,6 @@ const geojsonData: MapData = {
 
 
 const App = () => {
-  const [params, setParams] = useState<Config | null>(() => {
-    const script = document.getElementById('initial-data');
-    if (script) {
-      try {
-        return JSON.parse(script.textContent!) as Config;
-      } catch (error) {
-        console.error('Error parsing initial data:', error);
-      }
-    }
-    return null;
-  });
-
   const [engineOptions, setEngineOptions] = useState<EngineOption[]>([]);
   const [initialConditionsFile, setInitialConditionsFile] = useState<File | null>(null);
   const [populationFile, setPopulationFile] = useState<File | null>(null);
@@ -59,12 +47,32 @@ const App = () => {
   const [mobilityReductionFile, setMobilityReductionFile] = useState<File | null>(null);
   const [mapData, setMapData] = useState<MapData>(geojsonData);
 
+  const [params, setParams] = useState<Config | null>(null);
+
+  useEffect(() => {
+    const script = document.getElementById('initial-data');
+    if (script) {
+      try {
+        setParams(JSON.parse(script.textContent!) as Config);
+      } catch (error) {
+        console.error('Error parsing initial data:', error);
+      }
+    }
+  }, []);
+
   useEffect(() => {
     fetch('/engine_options')
       .then(response => response.json())
       .then(data => setEngineOptions(data))
       .catch(error => console.error('Error fetching engine options:', error));
   }, []);
+
+  const setBackendEngine = (newData: BackendEngine) => {
+    setParams((prevParams: Config | null) => prevParams && ({
+      ...prevParams,
+      backend_engine: newData
+    }));
+  };
 
   const updateParams = (section: string, newData: ConfigSectionType<any>) => {
     setParams((prevParams: Config | null) => prevParams && ({
@@ -123,17 +131,17 @@ const App = () => {
       component: MobilityReductionUpload,
       props: { file: mobilityReductionFile, setFile: setMobilityReductionFile }
     },
-    // {
-    //   key: 'interactiveMap',
-    //   title: 'Interactive Map',
-    //   component: InteractiveMap,
-    //   props: { mapData: mapData, onMapDataChange: handleMapDataChange }
-    // },
     {
       key: 'general',
       title: 'General Parameters',
       component: GeneralParams,
-      props: { params: params.simulation, setParams: (newData) => updateParams('simulation', newData), engineOptions: engineOptions || [] }
+      props: { 
+        params: params.simulation, 
+        setParams: (newData) => updateParams('simulation', newData), 
+        engineOptions: engineOptions || [],
+        backendEngine: params.backend_engine,
+        setBackendEngine: setBackendEngine
+      }
     },
     {
       key: 'epidemic',
@@ -170,7 +178,7 @@ const App = () => {
       if (mobilityFile) formData.append('mobility_matrix', mobilityFile);
       if (populationFile) formData.append('metapop', populationFile);
       if (initialConditionsFile) formData.append('init_conditions', initialConditionsFile);
-      if (params?.simulation?.backend_engine) formData.append('backend_engine', params.simulation.backend_engine.name);
+      if (params?.backend_engine) formData.append('backend_engine', params.backend_engine);
 
       const response = await fetch('/run_simulation', {
         method: 'POST',

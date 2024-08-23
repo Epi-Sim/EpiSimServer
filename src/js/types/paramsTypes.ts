@@ -3,8 +3,10 @@ export interface ConfigSectionType<T> {
     // No 'config' key, just the properties of T
 }
 
+export type BackendEngine = "MMCACovid19Vac" | "MMCACovid19";
+
 export interface EngineOption {
-    name: string;
+    name: BackendEngine;
     description: string;
 }
 
@@ -15,7 +17,6 @@ export interface SimulationConfig {
     save_time_step: number | null;
     output_folder: string;
     output_format: string;
-    backend_engine: EngineOption;
 }
 
 export interface DataConfig {
@@ -84,4 +85,5 @@ export interface Config {
     population_params: PopulationParams & ConfigSectionType<PopulationParams>;
     vaccination: VaccinationConfig & ConfigSectionType<VaccinationConfig>;
     NPI: NPIConfig & ConfigSectionType<NPIConfig>;
+    backend_engine: BackendEngine;
 }
