@@ -1,6 +1,9 @@
-export interface MapPopulation {
+export interface MapPopulation extends AgeCompartments {
   id: string;
   name: string;
+}
+
+export interface AgeCompartments {
   Y: number;
   M: number;
   O: number;
