@@ -6,6 +6,7 @@ import io
 import base64
 from db.db import read_simulation
 import folium
+from branca.colormap import linear
 import plotly.express as px
 import geopandas as gpd
 
@@ -164,20 +165,41 @@ def register_callbacks(dash_app):
             gdf = gpd.read_file(f).to_crs(epsg=4326)
             inf_mapdata = ds.sel(epi_states='I', T=ds.T[-1]).sum(dim=['G', 'V']).where(ds.M.isin(gdf.id))
             inf_mapdata = inf_mapdata.to_dataframe().reset_index()
-            total_bounds = gdf.total_bounds
-            lon, lat = ((total_bounds[0] + total_bounds[2]) / 2, (total_bounds[1] + total_bounds[3]) / 2)
+
+        # Merge inf_mapdata with gdf based on 'id' and 'M'
+        merged_data = gdf.merge(inf_mapdata[['M', 'data']], left_on='id', right_on='M', how='left')
+        # fill na with 0
+        merged_data['data'] = merged_data['data'].fillna(0)
+
+        total_bounds = gdf.total_bounds
+        lon, lat = ((total_bounds[0] + total_bounds[2]) / 2, (total_bounds[1] + total_bounds[3]) / 2)
+
+        # Create a color map based on the 'data' column
+        colormap = linear.inferno.scale(merged_data['data'].min(), merged_data['data'].max())
 
         # Create Folium map
-        folium_map = folium.Map(location=[lat, lon], zoom_start=8)
-        folium.Choropleth(
-            geo_data=gdf,
-            data=inf_mapdata,
-            columns=['M', 'data'],
-            key_on='feature.properties.id',
-            legend_name='Infected Cases on the final date',
-            fill_color="RdYlBu",
-            fill_opacity=0.5,
-            line_opacity=0.2,
+        folium_map = folium.Map(location=[lat, lon], zoom_start=7.5)
+        folium.GeoJson(
+            merged_data,
+            style_function=lambda feature: {
+                'fillColor': colormap(feature['properties']['data']),
+                'color': 'black',
+                'weight': 0.5,
+                'fillOpacity': 0.5,
+            },
+            tooltip=folium.GeoJsonTooltip(
+                fields=['name', 'data'],  # Add fields for tooltip
+                aliases=['Name:', 'Infected Cases:'],
+                localize=True,
+                sticky=False,
+                labels=True,
+                style="""
+                    background-color: #F0EFEF;
+                    border: 2px solid black;
+                    border-radius: 3px;
+                    box-shadow: 3px;
+                """,
+            )
         ).add_to(folium_map)
 
         # Save the map to a StringIO object
