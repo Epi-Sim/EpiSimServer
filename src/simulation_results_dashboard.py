@@ -168,12 +168,14 @@ def register_callbacks(dash_app):
             lon, lat = ((total_bounds[0] + total_bounds[2]) / 2, (total_bounds[1] + total_bounds[3]) / 2)
 
         # Create Folium map
-        folium_map = folium.Map(location=[lat, lon], zoom_start=7)
+        folium_map = folium.Map(location=[lat, lon], zoom_start=8)
         folium.Choropleth(
             geo_data=gdf,
             data=inf_mapdata,
             columns=['M', 'data'],
             key_on='feature.properties.id',
+            legend_name='Infected Cases on the final date',
+            fill_color="RdYlBu",
             fill_opacity=0.5,
             line_opacity=0.2,
         ).add_to(folium_map)
