@@ -165,7 +165,7 @@ def register_callbacks(dash_app):
             inf_mapdata = ds.sel(epi_states='I', T=ds.T[-1]).sum(dim=['G', 'V']).where(ds.M.isin(gdf.id))
             inf_mapdata = inf_mapdata.to_dataframe().reset_index()
             total_bounds = gdf.total_bounds
-            lat, lon = ((total_bounds[0] + total_bounds[2]) / 2, (total_bounds[1] + total_bounds[3]) / 2)
+            lon, lat = ((total_bounds[0] + total_bounds[2]) / 2, (total_bounds[1] + total_bounds[3]) / 2)
 
         # Create Folium map
         folium_map = folium.Map(location=[lat, lon], zoom_start=7)
