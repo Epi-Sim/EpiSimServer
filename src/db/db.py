@@ -3,6 +3,7 @@ import os
 import pandas as pd
 import xarray as xr
 from io import BytesIO
+import gzip
 
 # Add this line to export the database path
 DATABASE_PATH = os.path.join(os.path.dirname(__file__), 'epi_sim_db.db')
@@ -25,6 +26,8 @@ def create_database():
     conn.close()
 
 def store_simulation_result(id, output_data):
+    #TODO: move back to a file system approach but use sqlite for index and access?
+    compressed_data = gzip.compress(output_data)
     conn = get_db_connection()
     cursor = conn.cursor()
     
@@ -34,7 +37,7 @@ def store_simulation_result(id, output_data):
         ON CONFLICT(id) DO UPDATE SET
             output = excluded.output,
             updated_at = CURRENT_TIMESTAMP
-    """, (id, sqlite3.Binary(output_data)))
+    """, (id, compressed_data))
     
     conn.commit()
     conn.close()
@@ -45,10 +48,15 @@ def get_simulation_result(id):
     
     cursor.execute("SELECT output FROM simulation_results WHERE id = ?", (id,))
     result = cursor.fetchone()
+
+    if result:
+        output_data = gzip.decompress(result['output'])
+    else:
+        output_data = None
     
     conn.close()
     
-    return result['output'] if result else None
+    return output_data
 
 def read_simulation(simulation_id):
     output_data = get_simulation_result(simulation_id)

@@ -1,6 +1,7 @@
 from dash import html, dcc, Input, Output, State
 import dash_bootstrap_components as dbc
 import pandas as pd
+import xarray as xr
 import numpy as np
 import io
 import base64
@@ -8,6 +9,7 @@ from db.db import read_simulation
 import folium
 from branca.colormap import linear
 import plotly.express as px
+import plotly.graph_objects as go
 import geopandas as gpd
 
 def create_results_layout(simulation_id):
@@ -24,8 +26,8 @@ def create_results_layout(simulation_id):
                 dcc.Dropdown(id='vaccination-selector', multi=True, value=['NV', 'V']),
             ], md=6),
             dbc.Col([
-                html.H3("Infected vs Susceptible Over Time"),
-                dcc.Graph(id='total-cases-graph'),
+                html.H3("Infected vs Hospitalizations Over Time"),
+                dcc.Graph(id='hospitalization-graph'),
             ], md=6),
         ]),
         dbc.Row([
@@ -127,44 +129,77 @@ def register_callbacks(dash_app):
         
         return fig
 
+    def fetch_reference_data(simulation_id):
+        ds = xr.open_dataarray('models/mitma/casos_hosp_def_edad_provres.nc')
+        ds['T'] = pd.to_datetime(ds['T'].values)
+        return ds
+
     @dash_app.callback(
-        [Output('total-cases-graph', 'figure'),
+        [Output('hospitalization-graph', 'figure'),  # Updated output ID
          Output('age-distribution-graph', 'figure'),
          Output('regional-comparison-graph', 'src')],
         [Input('url', 'pathname')]
     )
     def update_static_graphs(pathname):
         simulation_id = pathname.split('/')[-1]
-        ds = read_simulation(simulation_id)
+        sim_output = read_simulation(simulation_id)
 
-        if ds is None:
-            return '', '', ''  # Return empty strings for the figures and iframe src
+        if sim_output is None:
+            return px.line(), px.bar(), ''  # Return empty figures and iframe src
 
-        # Infected vs Susceptible Over Time
-        infected = ds.sel(epi_states='I').sum(dim=['M', 'G', 'V']).data.to_numpy()
-        susceptible = ds.sel(epi_states='S').sum(dim=['M', 'G', 'V']).data.to_numpy()
-        
-        inf_sus_df = pd.DataFrame({
-            'Infected': infected,
-            'Susceptible': susceptible
-        })
-        
-        inf_sus_fig = px.line(inf_sus_df, x='Susceptible', y='Infected',
-                              title='Infected vs Susceptible Over Time')
-        inf_sus_fig.update_layout(xaxis_title='Susceptible', yaxis_title='Infected')
+        # Fetch hospitalization data
+        reference = fetch_reference_data(simulation_id)
+
+        # Infected vs Hospitalizations Over Time
+        sim_hosp = sim_output.sel(epi_states='I').sum(dim=['M', 'G', 'V']).data
+        sim_hosp.name = 'Simulated Infected'
+        reference_hosp = reference.sel(epi_states='I').sum(dim=['M', 'G'])
+        reference_hosp.name = 'Reference Hospitalizations'
+
+        # merge sim_hosp and reference_hosp on time
+        merged_hosp = xr.merge([sim_hosp, reference_hosp])
+
+        # Create the figure using go.Figure
+        inf_hosp_fig = go.Figure()
+
+        # Add simulated infected trace
+        inf_hosp_fig.add_trace(go.Scatter(
+            x=merged_hosp.T, 
+            y=merged_hosp['Simulated Infected'].values,
+            mode='lines',
+            name='Simulated Infected'
+        ))
+
+        # Add reference hospitalization trace
+        inf_hosp_fig.add_trace(go.Scatter(
+            x=merged_hosp.T, 
+            y=merged_hosp['Reference Hospitalizations'].values,
+            mode='lines',
+            name='Reference Hospitalizations',
+            line=dict(dash='dot')
+        ))
+
+        # Update layout
+        inf_hosp_fig.update_layout(
+            title='Simulated Infected vs Reference Hospitalizations Over Time',
+            xaxis_title='Time',
+            yaxis_title='Count',
+            legend_title='Data Source'
+        )
 
         # Age Distribution
-        age_distribution = ds.sel(epi_states='I', T=ds.T[-1]).sum(dim=['M', 'V']).to_dataframe().reset_index()
+        age_distribution = sim_output.sel(epi_states='I', T=sim_output.T[-1]).sum(dim=['M', 'V']).to_dataframe().reset_index()
         age_dist_fig = px.bar(x=age_distribution['G'], y=age_distribution['data'], title='Age Distribution of Cases')
         age_dist_fig.update_layout(xaxis_title='Age Group', yaxis_title='Number of Cases')
         
         with open('models/mitma/fl_municipios_catalonia.geojson') as f:
             gdf = gpd.read_file(f).to_crs(epsg=4326)
         
-        map_src = choropleth_map(gdf, ds)
+        map_src = choropleth_map(gdf, sim_output)
 
-        return inf_sus_fig, age_dist_fig, map_src  # Return figures and the base64 string for iframe
-    
+        return inf_hosp_fig, age_dist_fig, map_src  # Return updated figures
+
+
 def choropleth_map(gdf, simulation_results):
     """
     Creates a choropleth map of the infected compartment from simulation results at the final time step.
