@@ -157,59 +157,70 @@ def register_callbacks(dash_app):
         age_distribution = ds.sel(epi_states='I', T=ds.T[-1]).sum(dim=['M', 'V']).to_dataframe().reset_index()
         age_dist_fig = px.bar(x=age_distribution['G'], y=age_distribution['data'], title='Age Distribution of Cases')
         age_dist_fig.update_layout(xaxis_title='Age Group', yaxis_title='Number of Cases')
-
-        # Regional Comparison (changed to Folium map)
-        regional_cases = ds.sel(epi_states='I', T=ds.T[-1]).sum(dim=['G', 'V']).to_dataframe().reset_index()
         
         with open('models/mitma/fl_municipios_catalonia.geojson') as f:
             gdf = gpd.read_file(f).to_crs(epsg=4326)
-            inf_mapdata = ds.sel(epi_states='I', T=ds.T[-1]).sum(dim=['G', 'V']).where(ds.M.isin(gdf.id))
-            inf_mapdata = inf_mapdata.to_dataframe().reset_index()
-
-        # Merge inf_mapdata with gdf based on 'id' and 'M'
-        merged_data = gdf.merge(inf_mapdata[['M', 'data']], left_on='id', right_on='M', how='left')
-        # fill na with 0
-        merged_data['data'] = merged_data['data'].fillna(0)
-
-        total_bounds = gdf.total_bounds
-        lon, lat = ((total_bounds[0] + total_bounds[2]) / 2, (total_bounds[1] + total_bounds[3]) / 2)
-
-        # Create a color map based on the 'data' column
-        colormap = linear.inferno.scale(merged_data['data'].min(), merged_data['data'].max())
-
-        # Create Folium map
-        folium_map = folium.Map(location=[lat, lon], zoom_start=7.5)
-        folium.GeoJson(
-            merged_data,
-            style_function=lambda feature: {
-                'fillColor': colormap(feature['properties']['data']),
-                'color': 'black',
-                'weight': 0.5,
-                'fillOpacity': 0.5,
-            },
-            tooltip=folium.GeoJsonTooltip(
-                fields=['name', 'data'],  # Add fields for tooltip
-                aliases=['Name:', 'Infected Cases:'],
-                localize=True,
-                sticky=False,
-                labels=True,
-                style="""
-                    background-color: #F0EFEF;
-                    border: 2px solid black;
-                    border-radius: 3px;
-                    box-shadow: 3px;
-                """,
-            )
-        ).add_to(folium_map)
-
-        # Save the map to a StringIO object
-        map_io = io.BytesIO()
-        folium_map.save(map_io, close_file=False)
-        map_io.seek(0)
-        map_html = map_io.getvalue().decode()
-
-        # Encode the HTML to base64
-        map_base64 = base64.b64encode(map_html.encode()).decode()
-        map_src = f"data:text/html;base64,{map_base64}"
+        
+        map_src = choropleth_map(gdf, ds)
 
         return inf_sus_fig, age_dist_fig, map_src  # Return figures and the base64 string for iframe
+    
+def choropleth_map(gdf, simulation_results):
+    """
+    Creates a choropleth map of the infected compartment from simulation results at the final time step.
+    Returns a base64 encoded string of the leaflet map, which can be used in an iframe.
+    """
+    inf_mapdata = (
+        simulation_results
+        .sel(epi_states='I', T=simulation_results.T[-1])
+        .sum(dim=['G', 'V'])
+        .where(simulation_results.M.isin(gdf.id))
+    )
+    inf_mapdata = inf_mapdata.to_dataframe().reset_index()
+
+    # Merge inf_mapdata with gdf based on 'id' and 'M'
+    merged_data = gdf.merge(inf_mapdata[['M', 'data']], left_on='id', right_on='M', how='left')
+    # fill na with 0
+    merged_data['data'] = merged_data['data'].fillna(0)
+
+    total_bounds = gdf.total_bounds
+    lon, lat = ((total_bounds[0] + total_bounds[2]) / 2, (total_bounds[1] + total_bounds[3]) / 2)
+
+    # Create a color map based on the 'data' column
+    colormap = linear.inferno.scale(merged_data['data'].min(), merged_data['data'].max())
+
+    # Create Folium map
+    folium_map = folium.Map(location=[lat, lon], zoom_start=7.5)
+    folium.GeoJson(
+        merged_data,
+        style_function=lambda feature: {
+            'fillColor': colormap(feature['properties']['data']),
+            'color': 'black',
+            'weight': 0.5,
+            'fillOpacity': 0.5,
+        },
+        tooltip=folium.GeoJsonTooltip(
+            fields=['name', 'data'],  # Add fields for tooltip
+            aliases=['Name:', 'Infected Cases:'],
+            localize=True,
+            sticky=False,
+            labels=True,
+            style="""
+                background-color: #F0EFEF;
+                border: 2px solid black;
+                border-radius: 3px;
+                box-shadow: 3px;
+            """,
+        )
+    ).add_to(folium_map)
+
+    # Save the map to a StringIO object
+    map_io = io.BytesIO()
+    folium_map.save(map_io, close_file=False)
+    map_io.seek(0)
+    map_html = map_io.getvalue().decode()
+
+    # Encode the HTML to base64
+    map_base64 = base64.b64encode(map_html.encode()).decode()
+    map_src = f"data:text/html;base64,{map_base64}"
+    return map_src
