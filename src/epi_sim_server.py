@@ -17,6 +17,8 @@ import model_param_forms as mpf
 
 from db.db import DATABASE_PATH, create_database, store_simulation_result, read_simulation
 
+from simulation_results_dashboard import create_results_layout, register_callbacks
+
 template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'html'))
 static_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'static'))
 
@@ -121,16 +123,6 @@ def server_run_simulation():
         app.logger.error(f"Error in run_simulation: {str(e)}", exc_info=True)
         return jsonify({"status": "error", "message": str(e)}), 500
 
-def create_results_layout(simulation_id):
-    return html.Div([
-        html.H1(f"Results for Simulation {simulation_id}"),
-        dcc.Graph(id='results-graph'),
-        dcc.Dropdown(id='compartment-selector', multi=True, value=['I', 'R']),
-        dcc.Dropdown(id='region-selector', multi=True),
-        dcc.RangeSlider(id='time-range-slider', min=0, max=100, step=1, value=[], marks=None),
-        dcc.Dropdown(id='age-selector', multi=True),
-        dcc.Dropdown(id='vaccination-selector', multi=True, value=['NV', 'V']),
-    ])
 
 @dash_app.callback(Output('page-content', 'children'),
                    Input('url', 'pathname'))
@@ -140,101 +132,8 @@ def display_page(pathname):
         return create_results_layout(simulation_id)
     # ... handle other routes ...
 
-@dash_app.callback(
-    [Output('compartment-selector', 'options'),
-     Output('region-selector', 'options'),
-     Output('time-range-slider', 'min'),
-     Output('time-range-slider', 'max'),
-     Output('time-range-slider', 'marks'),
-     Output('time-range-slider', 'value'),
-     Output('age-selector', 'options'),
-     Output('vaccination-selector', 'options')],
-    Input('url', 'pathname')
-)
-def update_dropdowns(pathname):
-    if pathname.startswith('/dash/results/'):
-        simulation_id = pathname.split('/')[-1]
-        ds = read_simulation(simulation_id)
-        
-        if ds is None:
-            app.logger.error(f"using default graph values for simulation {simulation_id} not found")
-            return [], [], 0, 100, {}, [0, 100], [], []
-        
-        compartments = [{'label': c, 'value': c} for c in ds.epi_states.values]
-        regions = [{'label': r, 'value': r} for r in ds.M.values]
-        
-        time_min, time_max = 0, len(ds.T) - 1
-        num_marks = 5
-        mark_indices = np.linspace(time_min, time_max, num_marks, dtype=int)
-        time_marks = {int(i): pd.Timestamp(ds.T.values[i]).strftime('%Y-%m-%d') for i in mark_indices}
-        
-        ages = [{'label': a, 'value': a} for a in ds.G.values]
-        vaccinations = [{'label': v, 'value': v} for v in ds.V.values]
-        
-        return (
-            compartments,
-            regions,
-            time_min,
-            time_max,
-            time_marks,
-            [time_min, time_max],
-            ages,
-            vaccinations
-        )
-    return [], [], 0, 100, {}, [0, 100], [], []
-
-@dash_app.callback(
-    Output('results-graph', 'figure'),
-    [Input('compartment-selector', 'value'),
-     Input('region-selector', 'value'),
-     Input('time-range-slider', 'value'),
-     Input('age-selector', 'value'),
-     Input('vaccination-selector', 'value')],
-    State('url', 'pathname')
-)
-def update_graph(selected_compartments, selected_regions, time_range, selected_ages, selected_vaccinations, pathname):
-    simulation_id = pathname.split('/')[-1]
-    ds = read_simulation(simulation_id)
-
-    if ds is None:
-        app.logger.error(f"using default graph values for simulation {simulation_id} not found")
-        return px.line()
-    
-    # Create a dictionary of filters, excluding None values
-    filters = {}
-    if selected_compartments:
-        filters['epi_states'] = selected_compartments
-    if selected_regions:
-        filters['M'] = selected_regions
-    if selected_ages:
-        filters['G'] = selected_ages
-    if selected_vaccinations:
-        filters['V'] = selected_vaccinations
-    
-    # Update time filter
-    if time_range:
-        start_time, end_time = ds.T.values[time_range[0]], ds.T.values[time_range[1]]
-        filtered_ds = ds.sel(T=slice(start_time, end_time))
-    else:
-        filtered_ds = ds
-
-    # Apply other filters
-    filtered_ds = filtered_ds.sel(**filters)
-    
-    # Sum over 'M' and 'G' dimensions, but keep 'V'
-    summed_ds = filtered_ds.sum(dim=[dim for dim in ['M', 'G'] if dim in filtered_ds.dims])
-    
-    # Convert to DataFrame
-    df = summed_ds.to_dataframe().reset_index()
-    
-    # Create the line plot
-    app.logger.debug(f"plotting simulation output for simulation {simulation_id}")
-    app.logger.debug(f"filters: {filters}")
-    fig = px.line(df, x='T', y='data', color='epi_states', line_dash='V',
-                  title='Compartment Values Over Time',
-                  labels={'T': 'Time', 'data': 'Population', 'epi_states': 'Compartments', 'V': 'Vaccination'})
-    
-    return fig
+# Register the callbacks from simulation_results_dashboard
+register_callbacks(dash_app)
 
 if __name__ == '__main__':
     create_database()
