@@ -1,62 +1,31 @@
-import sqlite3
 import os
 import pandas as pd
 import xarray as xr
 from io import BytesIO
 import gzip
 
-# Add this line to export the database path
 DATABASE_PATH = os.path.join(os.path.dirname(__file__), 'epi_sim_db.db')
-
-def get_db_connection():
-    conn = sqlite3.connect(DATABASE_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+SIM_OUTPUT_DIR = os.path.join(os.path.dirname(__file__), 'sim_output')
 
 def create_database():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    with open(os.path.join(os.path.dirname(__file__), 'init_db.sql'), 'r') as sql_file:
-        sql_script = sql_file.read()
-    
-    cursor.executescript(sql_script)
-    
-    conn.commit()
-    conn.close()
+    os.makedirs(SIM_OUTPUT_DIR, exist_ok=True)
 
 def store_simulation_result(id, output_data):
-    #TODO: move back to a file system approach but use sqlite for index and access?
     compressed_data = gzip.compress(output_data)
-    conn = get_db_connection()
-    cursor = conn.cursor()
+    file_path = os.path.join(SIM_OUTPUT_DIR, f"{id}.gz")
     
-    cursor.execute("""
-        INSERT INTO simulation_results (id, output)
-        VALUES (?, ?)
-        ON CONFLICT(id) DO UPDATE SET
-            output = excluded.output,
-            updated_at = CURRENT_TIMESTAMP
-    """, (id, compressed_data))
-    
-    conn.commit()
-    conn.close()
+    with open(file_path, 'wb') as f:
+        f.write(compressed_data)
 
 def get_simulation_result(id):
-    conn = get_db_connection()
-    cursor = conn.cursor()
+    file_path = os.path.join(SIM_OUTPUT_DIR, f"{id}.gz")
     
-    cursor.execute("SELECT output FROM simulation_results WHERE id = ?", (id,))
-    result = cursor.fetchone()
-
-    if result:
-        output_data = gzip.decompress(result['output'])
-    else:
-        output_data = None
+    if os.path.exists(file_path):
+        with open(file_path, 'rb') as f:
+            compressed_data = f.read()
+        return gzip.decompress(compressed_data)
     
-    conn.close()
-    
-    return output_data
+    return None
 
 def read_simulation(simulation_id):
     output_data = get_simulation_result(simulation_id)

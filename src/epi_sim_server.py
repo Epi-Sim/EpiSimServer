@@ -15,7 +15,7 @@ import numpy as np
 
 import model_param_forms as mpf
 
-from db.db import DATABASE_PATH, create_database, store_simulation_result, read_simulation
+from db.db import create_database, store_simulation_result, read_simulation, SIM_OUTPUT_DIR
 
 from simulation_results_dashboard import create_results_layout, register_callbacks
 
@@ -25,7 +25,7 @@ static_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'static'))
 app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
 app.config['DATA_FOLDER'] = os.path.join(os.path.dirname(__file__), os.pardir, "models/mitma")
 app.config['INSTANCE_FOLDER'] = os.path.join(os.path.dirname(__file__), os.pardir, "runs")
-app.config['DATABASE_PATH'] = DATABASE_PATH
+app.config['SIM_OUTPUT_DIR'] = SIM_OUTPUT_DIR
 
 dash_app = Dash(
     __name__,
@@ -111,7 +111,6 @@ def server_run_simulation():
             output_file = os.path.join(model.model_state_folder, "output", "compartments_full.nc")
             assert os.path.exists(output_file), f"Output file {output_file} does not exist"
             
-            # Store the output in SQLite
             with open(output_file, 'rb') as f:
                 output_data = f.read()
             
