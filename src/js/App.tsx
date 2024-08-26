@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Paper, Typography, Stack, Accordion, AccordionSummary, AccordionDetails, Button, CircularProgress, Link as MuiLink } from '@mui/material';
+import DownloadIcon from '@mui/icons-material/Download';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers';
@@ -184,6 +185,19 @@ const App = () => {
     }
   };
 
+  const handleDownloadConfig = () => {
+    const configJson = JSON.stringify(params, null, 2);
+    const blob = new Blob([configJson], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'config.json';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={enGB}>
       <Container maxWidth="md">
@@ -200,14 +214,24 @@ const App = () => {
                 componentProps={section.props}
               />
             ))}
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={handleSubmit}
-              disabled={isLoading}
-            >
-              {isLoading ? <CircularProgress size={24} /> : 'Run Simulation'}
-            </Button>
+            <Stack direction="row" spacing={2} justifyContent="center">
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleSubmit}
+                disabled={isLoading}
+              >
+                {isLoading ? <CircularProgress size={24} /> : 'Run Simulation'}
+              </Button>
+              <Button
+                variant="outlined"
+                color="primary"
+                onClick={handleDownloadConfig}
+                startIcon={<DownloadIcon />}
+              >
+                Download Config
+              </Button>
+            </Stack>
             {result && (
               <Typography color={result.status === 'success' ? 'success' : 'error'}>
                 {result.message}
