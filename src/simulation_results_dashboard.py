@@ -23,7 +23,7 @@ def create_results_layout(simulation_id):
                 dcc.Dropdown(id='region-selector', multi=True),
                 dcc.RangeSlider(id='time-range-slider', min=0, max=100, step=1, value=[], marks=None),
                 dcc.Dropdown(id='age-selector', multi=True),
-                dcc.Dropdown(id='vaccination-selector', multi=True, value=['NV', 'V']),
+                dcc.Dropdown(id='vaccination-selector', multi=True, value=[]),
             ], md=6),
             dbc.Col([
                 html.H3("Infected vs Hospitalizations Over Time"),
@@ -119,13 +119,19 @@ def register_callbacks(dash_app):
 
         filtered_ds = filtered_ds.sel(**filters)
         
-        summed_ds = filtered_ds.sum(dim=[dim for dim in ['M', 'G'] if dim in filtered_ds.dims])
+        summed_ds = filtered_ds.sum(dim=[dim for dim in ['M', 'G', 'V'] if dim in filtered_ds.dims])
         
         df = summed_ds.to_dataframe().reset_index()
         
-        fig = px.line(df, x='T', y='data', color='epi_states', line_dash='V',
-                      title='Compartment Values Over Time',
-                      labels={'T': 'Time', 'data': 'Population', 'epi_states': 'Compartments', 'V': 'Vaccination'})
+        if 'V' in df.columns:
+            fig = px.line(df, x='T', y='data', color='epi_states', line_dash='V',
+                          title='Compartment Values Over Time',
+                          labels={'T': 'Time', 'data': 'Population', 'epi_states': 'Compartments', 'V': 'Vaccination'})
+        else:
+            fig = px.line(df, x='T', y='data', color='epi_states',
+                          title='Compartment Values Over Time',
+                          labels={'T': 'Time', 'data': 'Population', 'epi_states': 'Compartments'})
+
         
         return fig
 
