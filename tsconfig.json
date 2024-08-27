@@ -18,5 +18,12 @@
     // for transition to TypeScript
     "noImplicitAny": false
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*"],
+  "exclude": [
+    "src/js/static/js/bundle.*",
+    "node_modules",
+    "build",
+    "dist",
+    "**/*.spec.ts"
+  ]
 }
