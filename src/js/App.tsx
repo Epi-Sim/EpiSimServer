@@ -11,6 +11,13 @@ import { MapData } from './types/mapTypes';
 import { Config, ConfigSectionType, EngineOption, BackendEngine } from './types/paramsTypes';
 import { SimulationResult } from './types/simulationResultsTypes';
 
+declare global {
+  interface Window {
+    // loaded in the html template home.html, injected by Flask
+    initialData: string;
+  }
+}
+
 const geojsonData: MapData = {
   "type": "FeatureCollection",
   "features": [
@@ -52,13 +59,10 @@ const App = () => {
   const [params, setParams] = useState<Config | null>(null);
 
   useEffect(() => {
-    const script = document.getElementById('initial-data');
-    if (script) {
-      try {
-        setParams(JSON.parse(script.textContent!) as Config);
-      } catch (error) {
-        console.error('Error parsing initial data:', error);
-      }
+    if (!window.initialData && typeof window.initialData !== 'string') {
+      console.error('no initial data');
+    } else {
+      setParams(JSON.parse(window.initialData) as Config);
     }
   }, []);
 

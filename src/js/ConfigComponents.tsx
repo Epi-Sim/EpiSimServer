@@ -240,13 +240,6 @@ const EpidemicParams = ({ params, setParams }) => {
 };
 
 const InitialConditionUpload = ({ file, setFile }) => {
-  const handleFileUpload = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      setFile(file);
-    }
-  };
-
   const fileSample = {
     sample: `<xarray.Dataset> Size: 76MB
 Dimensions:     (epi_states: 10, V: 3, T: 37, M: 2850, G: 3)
@@ -264,7 +257,7 @@ Data variables:
   return (
       <FileUpload
         label="Upload Initial Condition File"
-        onFileChange={handleFileUpload}
+        onFileChange={(file: File) => setFile(file)}
         selectedFile={file}
         FileSample={fileSample}
       />
@@ -274,13 +267,6 @@ Data variables:
 const MetapopulationUpload = ({ file, setFile, mapData, onMapDataChange }) => {
   const [isMapEditorOpen, setIsMapEditorOpen] = useState(false);
   const [selectedFeature, setSelectedFeature] = useState(null);
-
-  const handleFileUpload = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      setFile(file);
-    }
-  };
 
   const handleFeatureClick = (feature) => {
     setSelectedFeature(feature);
@@ -298,7 +284,7 @@ const MetapopulationUpload = ({ file, setFile, mapData, onMapDataChange }) => {
     <Stack spacing={2} direction="row">
       <FileUpload
           label="Upload Population Data File"
-          onFileChange={handleFileUpload}
+          onFileChange={(file: File) => setFile(file)}
           selectedFile={file}
           FileSample={fileSample}
         />
@@ -325,13 +311,6 @@ const MetapopulationUpload = ({ file, setFile, mapData, onMapDataChange }) => {
 }
 
 const PopulationMobilityUpload = ({ file, setFile }) => {
-  const handleFileUpload = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      setFile(file);
-    }
-  };
-
   const fileSample = {
     sample: `source_idx,target_idx,ratio
 1,1,0.15384793162874416
@@ -343,7 +322,7 @@ const PopulationMobilityUpload = ({ file, setFile }) => {
   return (
       <FileUpload
         label="Upload Population Mobility File"
-        onFileChange={handleFileUpload}
+        onFileChange={(file: File) => setFile(file)}
         selectedFile={file}
         FileSample={fileSample}
       />
@@ -352,13 +331,6 @@ const PopulationMobilityUpload = ({ file, setFile }) => {
 };
 
 const MobilityReductionUpload = ({ file, setFile }) => {
-  const handleFileUpload = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      setFile(file);
-    }
-  };
-
   const fileSample = {
     sample: `date,reduction,datetime,time
 2020-03-16,0.5053579375294793,2020-03-16,36
@@ -370,7 +342,7 @@ const MobilityReductionUpload = ({ file, setFile }) => {
   return (
     <FileUpload
       label="Upload Mobility Reduction File"
-      onFileChange={handleFileUpload}
+      onFileChange={(file: File) => setFile(file)}
       selectedFile={file}
       FileSample={fileSample}
     />
