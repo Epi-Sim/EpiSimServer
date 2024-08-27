@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Grid, TextField, Button, Typography, Checkbox, FormControlLabel, MenuItem, Dialog, DialogTitle, DialogContent } from '@mui/material';
+import { Grid, Stack, TextField, Button, Typography, Checkbox, FormControlLabel, MenuItem, Dialog, DialogTitle, DialogContent } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { parseISO, format } from 'date-fns';
 import FileUpload from './FileUpload';
 import PopulationMapEditor from './PopulationMapEditor';
 import MobilityMapEditor from './MobilityMapEditor';
-import { SimulationConfig, EngineOption, BackendEngine } from './types/paramsTypes';
+import { SimulationConfig, EngineOption, BackendEngine, Config } from './types/paramsTypes';
 
 interface GeneralProps {
   params: SimulationConfig;
@@ -262,15 +262,12 @@ Data variables:
   };
 
   return (
-    <Grid container spacing={2}>
       <FileUpload
         label="Upload Initial Condition File"
-        accept=".csv,.json,.nc"
         onFileChange={handleFileUpload}
         selectedFile={file}
         FileSample={fileSample}
       />
-    </Grid>
   );
 }
 
@@ -298,37 +295,32 @@ const MetapopulationUpload = ({ file, setFile, mapData, onMapDataChange }) => {
   };
 
   return (
-    <Grid container spacing={2}>
-      <Grid item xs={8}>
-        <FileUpload
+    <Stack spacing={2} direction="row">
+      <FileUpload
           label="Upload Population Data File"
-          accept=".csv"
           onFileChange={handleFileUpload}
           selectedFile={file}
           FileSample={fileSample}
         />
-      </Grid>
-      <Grid item xs={4}>
         <Button variant="contained" onClick={() => setIsMapEditorOpen(true)}>
           Edit Map
         </Button>
-      </Grid>
-      <Dialog
-        open={isMapEditorOpen}
-        onClose={() => setIsMapEditorOpen(false)}
-        maxWidth="lg"
-        fullWidth
-      >
-        <DialogTitle>Edit Population Map</DialogTitle>
-        <DialogContent>
-          <PopulationMapEditor
-            mapData={mapData}
-            onMapDataChange={onMapDataChange}
-            onFeatureClick={handleFeatureClick}
-          />
-        </DialogContent>
-      </Dialog>
-    </Grid>
+        <Dialog
+          open={isMapEditorOpen}
+          onClose={() => setIsMapEditorOpen(false)}
+          maxWidth="lg"
+          fullWidth
+        >
+          <DialogTitle>Edit Population Map</DialogTitle>
+          <DialogContent>
+            <PopulationMapEditor
+              mapData={mapData}
+              onMapDataChange={onMapDataChange}
+              onFeatureClick={handleFeatureClick}
+            />
+          </DialogContent>
+        </Dialog>
+    </Stack>
   );
 }
 
@@ -349,16 +341,13 @@ const PopulationMobilityUpload = ({ file, setFile }) => {
   };
 
   return (
-    <Grid container spacing={2}>
       <FileUpload
         label="Upload Population Mobility File"
-        accept=".csv"
         onFileChange={handleFileUpload}
         selectedFile={file}
         FileSample={fileSample}
       />
-      {/* <MobilityMapEditor mapData={mapData} onMapDataChange={setMapData} /> */}
-    </Grid>
+      // {/* <MobilityMapEditor mapData={mapData} onMapDataChange={setMapData} /> */}
   );
 };
 
@@ -379,15 +368,12 @@ const MobilityReductionUpload = ({ file, setFile }) => {
   };
 
   return (
-    <Grid container spacing={2}>
-      <FileUpload
-        label="Upload Mobility Reduction File"
-        accept=".csv"
-        onFileChange={handleFileUpload}
-        selectedFile={file}
-        FileSample={fileSample}
-      />
-    </Grid>
+    <FileUpload
+      label="Upload Mobility Reduction File"
+      onFileChange={handleFileUpload}
+      selectedFile={file}
+      FileSample={fileSample}
+    />
   );
 };
 
@@ -507,6 +493,52 @@ const getFieldLabel = (field) => {
   return labels[field] || "";
 };
 
+interface ConfigUploadProps {
+  configFile: File | null;
+  setConfigFile: (configFile: File, config: Config) => void;
+  configFileSample: {
+    sample: string;
+    formats: string[];
+  };
+}
+
+const ConfigUpload = ({ configFile, setConfigFile, configFileSample }: ConfigUploadProps) => {
+  const handleConfigUpload = (file: File, fileContent: string) => {
+    const json = parseConfigFile(fileContent) as Config;
+    if (json) {
+      setConfigFile(file, json);
+    } else {
+      console.error("Invalid config file");
+    }
+  };
+
+  const parseConfigFile = (fileContent: string) => {
+    try {
+      const json = JSON.parse(fileContent);
+      const sample = JSON.parse(configFileSample.sample);
+      console.log(json)
+      const keyMatch = Object.entries(sample).every(([key, value]) => 
+        key in json && typeof json[key] === typeof value
+      );
+      if (!keyMatch) {
+        return false;
+      }
+      return json;
+    } catch (error) {
+      return false;
+    }
+  };
+
+  return (
+    <FileUpload
+      label="Upload Config"
+      onFileChange={handleConfigUpload}
+      selectedFile={configFile}
+      FileSample={configFileSample}
+    />
+  );
+};
+
 const ParameterUpload = ({ 
   initialConditionsFile, 
   setInitialConditionsFile,
@@ -516,38 +548,38 @@ const ParameterUpload = ({
   setMobilityFile,
   mobilityReductionFile,
   setMobilityReductionFile,
+  configFile,
+  setConfigFile,
+  configFileSample,
   mapData,
   onMapDataChange
 }) => {
   return (
-    <Grid container spacing={2}>
-      <Grid item xs={12}>
-        <InitialConditionUpload
-          file={initialConditionsFile}
-          setFile={setInitialConditionsFile}
-        />
-      </Grid>
-      <Grid item xs={12}>
-        <MetapopulationUpload
-          file={populationFile}
-          setFile={setPopulationFile}
-          mapData={mapData}
-          onMapDataChange={onMapDataChange}
-        />
-      </Grid>
-      <Grid item xs={12}>
-        <PopulationMobilityUpload
-          file={mobilityFile}
-          setFile={setMobilityFile}
-        />
-      </Grid>
-      <Grid item xs={12}>
-        <MobilityReductionUpload
-          file={mobilityReductionFile}
-          setFile={setMobilityReductionFile}
-        />
-      </Grid>
-    </Grid>
+    <Stack spacing={2}>
+      <ConfigUpload
+        configFile={configFile}
+        setConfigFile={setConfigFile}
+        configFileSample={configFileSample}
+      />
+      <InitialConditionUpload
+        file={initialConditionsFile}
+        setFile={setInitialConditionsFile}
+      />
+      <MetapopulationUpload
+        file={populationFile}
+        setFile={setPopulationFile}
+        mapData={mapData}
+        onMapDataChange={onMapDataChange}
+      />
+      <PopulationMobilityUpload
+        file={mobilityFile}
+        setFile={setMobilityFile}
+      />
+      <MobilityReductionUpload
+        file={mobilityReductionFile}
+        setFile={setMobilityReductionFile}
+      />
+    </Stack>
   );
 };
 

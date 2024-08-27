@@ -47,6 +47,7 @@ const App = () => {
   const [mobilityFile, setMobilityFile] = useState<File | null>(null);
   const [mobilityReductionFile, setMobilityReductionFile] = useState<File | null>(null);
   const [mapData, setMapData] = useState<MapData>(geojsonData);
+  const [configFile, setConfigFile] = useState<File | null>(null);
 
   const [params, setParams] = useState<Config | null>(null);
 
@@ -90,15 +91,22 @@ const App = () => {
     npi: false
   });
 
+  const handleUploadConfig = (file: File, fileContent: Config) => {
+    setConfigFile(file);
+    setParams(fileContent);
+  };
+
+  const configFileSample = {
+    sample: JSON.stringify(params, null, 2),
+    formats: ['.json']
+  };
+
   const toggleSection = (section) => {
     setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
   };
 
   const handleMapDataChange = (newMapData: MapData) => {
-    console.log("new map data");
-    console.log(newMapData);
     setMapData(newMapData);
-    // You might want to update other parts of your state or params here
   };
 
   const sections = params && [
@@ -115,6 +123,9 @@ const App = () => {
         setMobilityFile,
         mobilityReductionFile,
         setMobilityReductionFile,
+        configFile,
+        setConfigFile: handleUploadConfig,
+        configFileSample,
         mapData,
         onMapDataChange: handleMapDataChange
       }
@@ -214,7 +225,7 @@ const App = () => {
                 componentProps={section.props}
               />
             ))}
-            <Stack direction="row" spacing={2} justifyContent="center">
+            <Stack direction="row" spacing={2} justifyContent="center" alignItems="center">
               <Button
                 variant="contained"
                 color="primary"
