@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { Container, Paper, Typography, Stack, Button, CircularProgress, Link as MuiLink } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Container, Paper, Typography, Stack, Button, CircularProgress, Link as MuiLink, List, ListItem, ListItemText, Box } from '@mui/material';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import { styled } from '@mui/material/styles';
+import { EngineOption } from './types/paramsTypes';
 
 const Input = styled('input')({
   display: 'none',
@@ -13,6 +14,14 @@ const Home = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showWarning, setShowWarning] = useState(false);
+  const [engines, setEngines] = useState<EngineOption[]>([]);
+
+  useEffect(() => {
+    fetch('/engine_options')
+      .then(response => response.json())
+      .then(data => setEngines(data))
+      .catch(error => console.error('Error fetching engine options:', error));
+  }, []);
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
@@ -79,7 +88,26 @@ const Home = () => {
       <Paper elevation={3} style={{ padding: '20px', marginTop: '20px' }}>
         <Stack spacing={3}>
           <Typography variant="h4" gutterBottom>Welcome to EpiSim</Typography>
-          
+
+          <Typography variant="body1">
+            EpiSim is an interface for executing Julia-based epidemic models.
+            It currently supports two extended SEIR models.
+            The interface is available as a CLI or a web app.
+          </Typography>
+
+          <Box>
+            <Typography variant="body1">
+              Available simulation engines:
+            </Typography>
+            <List sx={{ padding: 0 }}>
+              {engines.map((engine: EngineOption, index) => (
+                <ListItem key={index}>
+                  <ListItemText primary={engine.name} secondary={engine.description} />
+                </ListItem>
+              ))}
+            </List>
+          </Box>
+
           <MuiLink href="/setup" underline="none">
             <Button variant="contained" color="primary">
               Set Up New Model
