@@ -1,21 +1,13 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, redirect, url_for
 import json
 import os
 import tempfile
-import base64
 from epi_sim import EpiSim
-from dash import Dash, html, dcc, Input, Output, State, callback_context
+from dash import Dash, html, dcc, Input, Output
 import dash_bootstrap_components as dbc
-import requests
-from dash.exceptions import PreventUpdate
-import plotly.express as px
-import pandas as pd
-import xarray as xr
-import numpy as np
-
-import model_param_forms as mpf
-
-from db.db import create_database, store_simulation_result, read_simulation, SIM_OUTPUT_DIR
+import uuid
+import gzip
+from db.db import create_database, store_simulation_result, SIM_OUTPUT_DIR
 
 from simulation_results_dashboard import create_results_layout, register_callbacks
 
@@ -48,7 +40,7 @@ def setup():
     with open(config_path, 'r') as f:
         config = json.load(f)
 
-    return render_template('index.html', config_json=json.dumps(config))
+    return render_template('index.html', component='App', bundle='setup.bundle.js', config_json=json.dumps(config))
 
 @app.route('/engine_options')
 def engine_options():
@@ -57,7 +49,34 @@ def engine_options():
 
 @app.route('/')
 def home():
-    return render_template('home.html')
+    return render_template('index.html', component='Home', bundle='home.bundle.js')
+
+
+@app.route('/check_file_exists', methods=['POST'])
+def check_file_exists():
+    filename = request.json.get('filename')
+    file_id = filename.split('.')[0]  # Assuming filename is in the format "uuid.extension"
+    file_path = os.path.join(app.config['SIM_OUTPUT_DIR'], f"{file_id}.nc.gz")
+    exists = os.path.exists(file_path)
+    return jsonify({"exists": exists, "file_id": file_id})
+
+@app.route('/upload_simulation', methods=['POST'])
+def upload_simulation():
+    if 'simulation_file' not in request.files:
+        return jsonify({"error": "No file part"}), 400
+    file = request.files['simulation_file']
+    if file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
+    if file:
+        if file.filename.endswith('.gz'):
+            contents = gzip.decompress(file.read())
+        else:
+            contents = file.read()
+
+        file_id = request.form.get('file_id', str(uuid.uuid4()))
+        store_simulation_result(file_id, contents)
+        return jsonify({"status": "success", "file_id": file_id}), 200
+    return jsonify({"error": "Unknown error"}), 500
 
 
 def write_json_to_data_folder(data, filename):

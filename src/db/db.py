@@ -12,13 +12,13 @@ def create_database():
 
 def store_simulation_result(id, output_data):
     compressed_data = gzip.compress(output_data)
-    file_path = os.path.join(SIM_OUTPUT_DIR, f"{id}.gz")
+    file_path = os.path.join(SIM_OUTPUT_DIR, f"{id}.nc.gz")
     
     with open(file_path, 'wb') as f:
         f.write(compressed_data)
 
 def get_simulation_result(id):
-    file_path = os.path.join(SIM_OUTPUT_DIR, f"{id}.gz")
+    file_path = os.path.join(SIM_OUTPUT_DIR, f"{id}.nc.gz")
     
     if os.path.exists(file_path):
         with open(file_path, 'rb') as f:

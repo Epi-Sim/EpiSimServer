@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>React App</title>
+    <title>EpiSim</title>
 </head>
 <body>
     <div id="root"></div>
-    <script id="initial-data" type="application/json">
-        {{ config_json | safe }}
+    <script>
+        window.initialData = {% if config_json %}{{ config_json | tojson | safe }}{% else %}undefined{% endif %};
     </script>
-    <script src="{{ url_for('static', filename='js/bundle.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/' ~ bundle) }}"></script>
 </body>
 </html>

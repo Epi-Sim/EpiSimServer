@@ -1,9 +1,12 @@
 const path = require('path');
 
 module.exports = {
-  entry: './src/js/index.tsx', // Update the entry point to .tsx
+  entry: {
+    home: './src/js/entrypoints/home.tsx',
+    setup: './src/js/entrypoints/setup.tsx',
+  },
   output: {
-    filename: 'bundle.js',
+    filename: '[name].bundle.js',
     path: path.resolve(__dirname, 'src/static/js'),
   },
   mode: 'development',
