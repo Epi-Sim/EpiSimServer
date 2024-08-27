@@ -157,9 +157,9 @@ def register_callbacks(dash_app):
         reference = fetch_reference_data(simulation_id)
 
         # Infected vs Hospitalizations Over Time
-        sim_hosp = sim_output.sel(epi_states='I').sum(dim=['M', 'G', 'V']).data
-        sim_hosp.name = 'Simulated Infected'
-        reference_hosp = reference.sel(epi_states='I').sum(dim=['M', 'G'])
+        sim_hosp = sim_output.sel(epi_states=['PH', 'HR', 'HD']).sum(dim=['M', 'G', 'V', 'epi_states']).data
+        sim_hosp.name = 'Simulated Hospitalizations'
+        reference_hosp = reference.sel(epi_states='H').sum(dim=['M', 'G'])
         reference_hosp.name = 'Reference Hospitalizations'
 
         # merge sim_hosp and reference_hosp on time
@@ -171,9 +171,9 @@ def register_callbacks(dash_app):
         # Add simulated infected trace
         inf_hosp_fig.add_trace(go.Scatter(
             x=merged_hosp.T, 
-            y=merged_hosp['Simulated Infected'].values,
+            y=merged_hosp['Simulated Hospitalizations'].values,
             mode='lines',
-            name='Simulated Infected'
+            name='Simulated Hospitalizations'
         ))
 
         # Add reference hospitalization trace
@@ -187,7 +187,7 @@ def register_callbacks(dash_app):
 
         # Update layout
         inf_hosp_fig.update_layout(
-            title='Simulated Infected vs Reference Hospitalizations Over Time',
+            title='Simulated Hospitalizations vs Reference Hospitalizations Over Time',
             xaxis_title='Time',
             yaxis_title='Count',
             legend_title='Data Source'
