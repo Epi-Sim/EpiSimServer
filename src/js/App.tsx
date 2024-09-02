@@ -186,11 +186,22 @@ const App = () => {
       const response = await fetch('/run_simulation', {
         method: 'POST',
         body: formData,
+        redirect: 'follow', // This tells fetch to follow redirects
       });
-      const data = await response.json();
-      setResult(data);
-      if (data.status === 'success') {
+      
+      if (response.redirected) {
+        // If the response was redirected, navigate to the new URL
+        window.location.href = response.url;
+      } else if (response.ok) {
+        const data = await response.json();
+        setResult(data);
         setHasResults(true);
+        if (data.redirect) {
+          // If there's a redirect URL in the response, navigate to it
+          window.location.href = data.redirect;
+        }
+      } else {
+        throw new Error('Failed to run simulation');
       }
     } catch (error) {
       console.error('Error submitting simulation:', error);

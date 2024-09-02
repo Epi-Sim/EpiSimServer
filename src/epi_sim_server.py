@@ -7,7 +7,9 @@ from dash import Dash, html, dcc, Input, Output
 import dash_bootstrap_components as dbc
 import uuid
 import gzip
-from db.db import create_database, store_simulation_result, SIM_OUTPUT_DIR
+import hashlib
+
+from db.db import create_database, store_simulation_result, store_simulation_params, get_existing_simulation_id, SIM_OUTPUT_DIR
 
 from simulation_results_dashboard import create_results_layout, register_callbacks
 
@@ -95,6 +97,15 @@ def server_run_simulation():
         init_conditions = request.files.get('init_conditions')
         backend_engine = request.form['backend_engine']
 
+        # Calculate hash of the params
+        params_hash = calculate_params_hash(config, mobility_reduction, mobility_matrix, metapop, init_conditions)
+
+        # Check if the hash already exists in the database
+        existing_id = get_existing_simulation_id(params_hash)
+        print(f"existing_id: {existing_id}")
+        if existing_id:
+            return redirect(f"/dash/results/{existing_id}")
+
         # Create a temporary directory
         with tempfile.TemporaryDirectory(prefix='EpiSim_') as temp_dir:
             # Write payload contents to files in the temporary directory
@@ -111,20 +122,27 @@ def server_run_simulation():
             metapop.save(metapop_fp)
             init_conditions.save(init_conditions_fp)
 
-            assert os.path.exists(temp_dir), f"temp_dir {temp_dir} does not exist"
-
+            # Store simulation params
+            params_files = {
+                'config.json': open(config_fp, 'rb'),
+                'kappa0_from_mitma.csv': open(mobility_reduction_fp, 'rb'),
+                'R_mobility_matrix.csv': open(mobility_matrix_fp, 'rb'),
+                'metapopulation_data.csv': open(metapop_fp, 'rb'),
+                'initial_conditions.nc': open(init_conditions_fp, 'rb')
+            }
+            
             # the data and instance folder are the same for now
             # because we put the output into sqlite anyway
             model = (
                 EpiSim(config_fp, temp_dir, temp_dir, init_conditions_fp)
-                .setup('compiled')
+                .setup('interpreter')
                 .set_backend_engine(backend_engine)
             )
 
             assert os.path.exists(model.model_state_folder), f"model.model_state_folder {model.model_state_folder} does not exist"
 
             # Run the model
-            id, output = model.run_model()
+            id, _ = model.run_model()
 
             # Read the model output
             output_file = os.path.join(model.model_state_folder, "output", "compartments_full.nc")
@@ -132,15 +150,36 @@ def server_run_simulation():
             
             with open(output_file, 'rb') as f:
                 output_data = f.read()
-            
-            store_simulation_result(id, output_data)
 
-            return jsonify({"status": "success", "message": "Simulation completed and stored", "uuid": id}), 200
+            assert output_data is not None, f"output_data is None"
+
+            # Store params in the database
+            store_simulation_params(params_files, params_hash)
+
+
+            # Store the simulation result
+            store_simulation_result(id, output_data, params_hash)
+
+            return jsonify({
+                "status": "success", 
+                "message": "Simulation completed and stored", 
+                "uuid": id,
+                "params_hash": params_hash,
+                "redirect": f"/dash/results/{id}"
+            }), 200
 
     except Exception as e:
         app.logger.error(f"Error in run_simulation: {str(e)}", exc_info=True)
         return jsonify({"status": "error", "message": str(e)}), 500
 
+def calculate_params_hash(config, *files):
+    hasher = hashlib.sha256()
+    hasher.update(json.dumps(config, sort_keys=True).encode())
+    for file in files:
+        file.seek(0)
+        hasher.update(file.read())
+        file.seek(0)
+    return hasher.hexdigest()
 
 @dash_app.callback(Output('page-content', 'children'),
                    Input('url', 'pathname'))
