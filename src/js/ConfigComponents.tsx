@@ -4,7 +4,6 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { parseISO, format } from 'date-fns';
 import FileUpload from './FileUpload';
 import PopulationMapEditor from './PopulationMapEditor';
-import MobilityMapEditor from './MobilityMapEditor';
 import { SimulationConfig, EngineOption, BackendEngine, Config } from './types/paramsTypes';
 
 interface GeneralProps {
@@ -326,7 +325,6 @@ const PopulationMobilityUpload = ({ file, setFile }) => {
         selectedFile={file}
         FileSample={fileSample}
       />
-      // {/* <MobilityMapEditor mapData={mapData} onMapDataChange={setMapData} /> */}
   );
 };
 

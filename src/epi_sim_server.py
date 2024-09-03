@@ -135,7 +135,7 @@ def server_run_simulation():
             # because we put the output into sqlite anyway
             model = (
                 EpiSim(config_fp, temp_dir, temp_dir, init_conditions_fp)
-                .setup('interpreter')
+                .setup('compiled')
                 .set_backend_engine(backend_engine)
             )
 
