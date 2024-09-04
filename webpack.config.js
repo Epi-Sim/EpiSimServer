@@ -9,7 +9,7 @@ module.exports = {
     filename: '[name].bundle.js',
     path: path.resolve(__dirname, 'src/static/js'),
   },
-  mode: 'development',
+  mode: 'production',
   devtool: 'eval-source-map',
   module: {
     rules: [

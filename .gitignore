@@ -24,17 +24,20 @@ docs/site/
 Manifest.toml
 
 src/__pycache__
+src/db/__pycache__
+src/db/sim_output/
+src/db/epi_sim_db.db
 runs/
 build/*
 output/*.nc
 output/*.csv
 output/*.hdf5
-src/static/js/bundle.*
+src/static/js/*.bundle.*
 
 episim
 bin/episim
 
 
 venv/
-localvenv/
+episimserver_venv/
 node_modules

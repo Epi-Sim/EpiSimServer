@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { Slider, Typography, Button } from '@mui/material';
+import Slider from '@mui/material/Slider';
+import Typography from '@mui/material/Typography';
+import Button from '@mui/material/Button';
 import { AgeCompartments } from './types/mapTypes';
 interface Props {
     id?: string;

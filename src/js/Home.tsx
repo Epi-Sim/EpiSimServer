@@ -1,5 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Paper, Typography, Stack, Button, CircularProgress, Link as MuiLink, List, ListItem, ListItemText, Box } from '@mui/material';
+import Container from '@mui/material/Container';
+import Paper from '@mui/material/Paper';
+import Typography from '@mui/material/Typography';
+import Stack from '@mui/material/Stack';
+import Button from '@mui/material/Button';
+import CircularProgress from '@mui/material/CircularProgress';
+import Link from '@mui/material/Link';
+import Box from '@mui/material/Box';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import ListItemText from '@mui/material/ListItemText';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import { styled } from '@mui/material/styles';
 import { EngineOption } from './types/paramsTypes';
@@ -108,11 +118,11 @@ const Home = () => {
             </List>
           </Box>
 
-          <MuiLink href="/setup" underline="none">
+          <Link href="/setup" underline="none">
             <Button variant="contained" color="primary">
               Set Up New Model
             </Button>
-          </MuiLink>
+          </Link>
 
           <Typography variant="h6">Or upload a simulation output file:</Typography>
 

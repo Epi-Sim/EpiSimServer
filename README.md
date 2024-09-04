@@ -25,9 +25,11 @@ git clone https://github.com/yourusername/EpiSimServer.git
 ```
 
 Install Python dependencies:
+Note: this includes EpiSim. When you install the python interface to EpiSim, it will compile the Julia backend. This takes a very long time (like 10 minutes), and the resulting compiled engine is large (like 2GB).
+
 
 ```bash
-pip install -r requirements.txt
+pip install -vv -r requirements.txt
 ```
 
 Install Node.js dependencies:
