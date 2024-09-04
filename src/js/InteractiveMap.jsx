@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, GeoJSON, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import { TextField, Button, Typography } from '@mui/material';
+import TextField from '@mui/material/TextField';
+import Button from '@mui/material/Button';
+import Typography from '@mui/material/Typography';
 
 const InteractiveMap = ({ mapData, onMapDataChange }) => {
   const [selectedPolygon, setSelectedPolygon] = useState(null);

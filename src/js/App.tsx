@@ -1,10 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Paper, Typography, Stack, Accordion, AccordionSummary, AccordionDetails, Button, CircularProgress, Link as MuiLink } from '@mui/material';
+// import { Container, Paper, Typography, Stack, Accordion, AccordionSummary, AccordionDetails, Button, CircularProgress, Link } from '@mui/material';
+import Container from '@mui/material/Container';
+import Paper from '@mui/material/Paper';
+import Typography from '@mui/material/Typography';
+import Stack from '@mui/material/Stack';
+import Accordion from '@mui/material/Accordion';
+import AccordionSummary from '@mui/material/AccordionSummary';
+import AccordionDetails from '@mui/material/AccordionDetails';
+import Button from '@mui/material/Button';
+import CircularProgress from '@mui/material/CircularProgress';
+import Link from '@mui/material/Link';
 import DownloadIcon from '@mui/icons-material/Download';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { LocalizationProvider } from '@mui/x-date-pickers';
-import { enGB } from 'date-fns/locale';
+import enGB from 'date-fns/locale/en-GB';
 import { GeneralParams, EpidemicParams, VaccinationParams, NPIParams, ParameterUpload } from './ConfigComponents';
 import DownloadResults from './DownloadResults';
 import { MapData } from './types/mapTypes';
@@ -266,11 +276,11 @@ const App = () => {
             {hasResults && result && (
               <>
                 <DownloadResults data={result.output} />
-                <MuiLink href={`/dash/results/${result.uuid}`} underline="none">
+                <Link href={`/dash/results/${result.uuid}`} underline="none">
                   <Button variant="contained" color="secondary">
                     Go to Analysis Page
                   </Button>
-                </MuiLink>
+                </Link>
               </>
             )}
           </Stack>
