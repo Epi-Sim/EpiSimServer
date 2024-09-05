@@ -157,7 +157,8 @@ def register_callbacks(dash_app):
         reference = fetch_reference_data(simulation_id)
 
         # Infected vs Hospitalizations Over Time
-        sim_hosp = sim_output.sel(epi_states=['PH', 'HR', 'HD']).sum(dim=['M', 'G', 'V', 'epi_states']).data
+        sum_dims = [d for d in ['M', 'G', 'V', 'epi_states'] if d in sim_output.dims]
+        sim_hosp = sim_output.sel(epi_states=['PH', 'HR', 'HD']).sum(dim=sum_dims).data
         sim_hosp.name = 'Simulated Hospitalizations'
         reference_hosp = reference.sel(epi_states='H').sum(dim=['M', 'G'])
         reference_hosp.name = 'Reference Hospitalizations'
@@ -194,7 +195,8 @@ def register_callbacks(dash_app):
         )
 
         # Age Distribution
-        age_distribution = sim_output.sel(epi_states='I', T=sim_output.T[-1]).sum(dim=['M', 'V']).to_dataframe().reset_index()
+        sum_dims = [d for d in ['M', 'V'] if d in sim_output.dims]
+        age_distribution = sim_output.sel(epi_states='I', T=sim_output.T[-1]).sum(dim=sum_dims).to_dataframe().reset_index()
         age_dist_fig = px.bar(x=age_distribution['G'], y=age_distribution['data'], title='Age Distribution of Cases')
         age_dist_fig.update_layout(xaxis_title='Age Group', yaxis_title='Number of Cases')
         
@@ -211,10 +213,11 @@ def choropleth_map(gdf, simulation_results):
     Creates a choropleth map of the infected compartment from simulation results at the final time step.
     Returns a base64 encoded string of the leaflet map, which can be used in an iframe.
     """
+    sum_dims = ['G', 'V'] if 'V' in simulation_results.dims else ['G']
     inf_mapdata = (
         simulation_results
         .sel(epi_states='I', T=simulation_results.T[-1])
-        .sum(dim=['G', 'V'])
+        .sum(dim=sum_dims)
         .where(simulation_results.M.isin(gdf.id))
     )
     inf_mapdata = inf_mapdata.to_dataframe().reset_index()
